@@ -1,0 +1,107 @@
+#SPI-R Backend Calculations
+
+#IMPORT STATEMENTS
+import math
+import scipy.constants as const
+
+#constants for reference
+#print(const.h) #print Planck's constant
+#print(const.c) #print speed of light
+
+#VARIABLE DECLARATIONS
+#define variables for find_length
+planeLength = 0.0 #l
+beamDistance = 20.0 #d
+timeSilent = 0.0 #ts
+timeRight = 0.0 #tr
+
+parenthesis1 = 0.0
+parenthesis2 = 0.0
+
+#define variables for find_velocity
+planeVelocity = 0.0 #v
+# beamDistance
+# timeRight
+
+#define variables for find_altitutde
+heightInitial = 35000 #h0, meters, height of the satellite
+heightPlane = 0.0 #h2
+halfBeamDistance = 10 #w0, half the beam distance
+heightSide = 0.0 #used to simplify code
+distanceSide = 0.0 #used to simplify code
+d1 = 0.0 #distance from cylinder to cone
+t2 = 0.0 #time hitting the cone
+t1 = 0.0 #time hitting the cylinder, will remain 0 but left here for clarity
+
+
+#FUNCTIONS
+def find_length(timeSilent, timeRight):
+    #MATH EQUATIONS
+    #d = ((ts/tr)+1)d
+    #d = ((parenthesis1)+1)d
+    #d = (parenthesis2)d
+
+    #MATH CODED
+    parenthesis1 = timeSilent/timeRight
+    parenthesis2 = parenthesis1 + 1
+    planeLength = parenthesis2 * beamDistance
+    
+    #PRINT STATEMENTS
+    #print(f"The length of the plane is: {planeLength} meters")
+
+    #RETURN STATEMENTS
+    return planeLength
+
+def find_velocity(timeRight):
+    #MATH EQUATIONS
+    #v = d/tr
+
+    #MATH CODED
+    planeVelocity = beamDistance / timeRight
+
+    #PRINT STATEMENTS
+    #print(f"The velocity of the plane is: {planeVelocity} m/s")
+    #print(f"----------------------------------")
+    #print(f" ")
+
+    #RETURN STATEMENT
+    return planeVelocity
+
+def find_altitude(t2):
+    #MATH EQUATIONS
+    #(h0/h2) = (w0/d1)
+    #h2 = (h0*d1)/w0
+    #d1 = v(t2-t1)
+    #d1 = (D/tr)(t2-t1)
+
+    #MATH CODED
+    d1 = find_velocity(timeRight) * (t2 - t1)
+    heightPlane = (heightInitial*d1) / halfBeamDistance
+
+    #PRINT STATEMENTS
+    #print(f"The distance between the cylinder and cone beams is: {d1} m")
+    #print(f"The altitude of the plane is: {heightPlane} m")
+
+    #RETURN STATEMENT
+    return heightPlane
+    
+
+
+# this is the main code that validates the input and calls the find plane function
+# do any output processing here and other global error handling
+try:
+    #INPUT STATEMENTS
+    #inputs for find_length & find_velocity
+    timeSilent = float(input("Enter the TimeSilent: "))
+    timeRight = float(input("Enter the Time Right: "))
+
+    #inputs for find_altitude
+    t2 = float(input('Enter the time at which the cone was hit after the cylinder: '))
+    #print(f"-")
+    
+    
+    # Calculate the function
+    length = find_length(timeSilent, timeRight)
+    planeVelocity = find_velocity(timeRight)
+    heightPlane = find_altitude(t2)
+    #NumberPhotonsDetected1 = find_time_and_detectedPhotons(InputtedPlaneLength, InputtedPlaneSpeed)
