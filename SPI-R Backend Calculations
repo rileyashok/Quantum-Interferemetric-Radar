@@ -105,3 +105,43 @@ try:
     planeVelocity = find_velocity(timeRight)
     heightPlane = find_altitude(t2)
     #NumberPhotonsDetected1 = find_time_and_detectedPhotons(InputtedPlaneLength, InputtedPlaneSpeed)
+
+#ERROR CONSTANTS // Need to find 
+MINIMUM_PHOTONS =  #photons 
+MAX_ATMOSPHERIC_INTERFERENCE =  
+MAX_DARK_COUNTS = 
+BIRD_SPEED_THRESHOLD = #mph
+#MAX_BIRD_SPEED =  #m/s
+
+#ERROR FUNCTIONS
+def check_atmosphere(transmission_factor):
+    if transmission_factor < MAX_ATMOSPHERIC_INTERFERENCE:
+        raise ValueError("Poor atmospheric conditions for detection")
+    return True
+
+def check_dark_counts(dark_count_rate):
+    if dark_count_rate > (dark_count_rate):
+        raise ValueError("Dark count rate too high for reliable detection")
+    return True
+
+def check_atmospheric_interference(atmospheric_interference):
+    if atmospheric_interference > MAX_ATMOSPHERIC_INTERFERENCE:
+        raise ValueError("Poor atmospheric conditions for detection")
+    return True
+
+def check_bird_speed(bird_speed): 
+    if bird_speed <= BIRD_SPEED_THRESHOLD:
+        raise ValueError("Detection speed suggests possible bird")
+    return True 
+  
+def check_beam_distance(beam_distance, half_beam_distance):
+    if abs(beam_distance - (2 * half_beam_distance)) > 0.001: 
+        raise ValueError("Beam distances don't match")
+    return True
+def check_photon_count(photon_count):
+    if photon_count < MINIMUM_PHOTONS:
+        raise ValueError("Not enough photons detected")
+    return True
+    
+
+
