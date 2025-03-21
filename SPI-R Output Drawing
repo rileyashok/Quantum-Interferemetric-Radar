@@ -24,16 +24,16 @@ info_display.penup()
 info_display.goto(-380, 350)
 info_display.color("white")
 
-# Constants from the original code
+# Constants from simulation 
 beam_distance = 20.0  # d (meters)
 half_beam_distance = 10.0  # w0 (meters)
 height_initial = 35000  # h0 (meters), height of the satellite
 
-# Error constants (filling in missing values with reasonable defaults)
-MINIMUM_PHOTONS = 100  # photons
-MAX_ATMOSPHERIC_INTERFERENCE = 0.3
-MAX_DARK_COUNTS = 50
-BIRD_SPEED_THRESHOLD = 60  # mph
+# Error constants (Need to get constants0
+MINIMUM_PHOTONS =   # photons
+MAX_ATMOSPHERIC_INTERFERENCE = 
+MAX_DARK_COUNTS = 
+BIRD_SPEED_THRESHOLD =  # mph
 
 # Function to calculate plane length
 def find_length(time_silent, time_right):
