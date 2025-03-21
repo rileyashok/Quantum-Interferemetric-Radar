@@ -2,41 +2,192 @@
 
 import turtle
 import math
+import random
 
 # Initialize the turtle screen
 screen = turtle.Screen()
 screen.setup(width=800, height=800)
-screen.title("Quantum Radar Output")
+screen.title("SPI-R Quantum Radar Simulation")
+screen.bgcolor("black")
 
 # Create a turtle object
 radar = turtle.Turtle()
 radar.speed(0)
 radar.hideturtle()
+radar.pencolor("green")
 
-# Function to draw a line at a specific angle
-def draw_line(length, angle):
+#Create a turtle for information display
+info_display = turtle.Turtle()
+info_display.speed(0)
+info_display.hideturtle()
+info_display.penup()
+info_display.goto(-380, 350)
+info_display.color("white")
+
+# Constants from the original code
+beam_distance = 20.0  # d (meters)
+half_beam_distance = 10.0  # w0 (meters)
+height_initial = 35000  # h0 (meters), height of the satellite
+
+# Error constants (filling in missing values with reasonable defaults)
+MINIMUM_PHOTONS = 100  # photons
+MAX_ATMOSPHERIC_INTERFERENCE = 0.3
+MAX_DARK_COUNTS = 50
+BIRD_SPEED_THRESHOLD = 60  # mph
+
+# Function to calculate plane length
+def find_length(time_silent, time_right):
+    parenthesis1 = time_silent / time_right
+    parenthesis2 = parenthesis1 + 1
+    plane_length = parenthesis2 * beam_distance
+    return plane_length
+
+# Function to calculate plane velocity
+def find_velocity(time_right):
+    plane_velocity = beam_distance / time_right
+    return plane_velocity
+
+# Function to calculate altitude
+def find_altitude(t2, time_right):
+    t1 = 0  # time hitting the cylinder
+    velocity = find_velocity(time_right)
+    d1 = velocity * (t2 - t1)
+    height_plane = (height_initial * d1) / half_beam_distance
+    return height_plane
+
+# Function to draw the radar display
+def draw_radar_circle():
+    radar.penup()
+    radar.goto(0, -300)
+    radar.pendown()
+    radar.circle(300)
+    
+    # Draw cross lines
+    radar.penup()
+    radar.goto(-300, 0)
+    radar.pendown()
+    radar.goto(300, 0)
+    radar.penup()
+    radar.goto(0, -300)
+    radar.pendown()
+    radar.goto(0, 300)
+
+# Function to draw a detection line at a specific angle
+def draw_detection(length, angle, intensity):
+    # Scale length for display purposes
+    scaled_length = min(length / 2, 280)
+    
+    # Set pen color based on intensity (brighter green = stronger signal)
+    intensity_color = min(1.0, max(0.2, intensity))
+    radar.pencolor(0, intensity_color, 0)
+    
+    # Set pen width based on intensity
+    radar.pensize(max(1, min(3, intensity * 3)))
+    
     radar.penup()
     radar.goto(0, 0)
     radar.setheading(angle)
-    radar.forward(length / 2)
     radar.pendown()
-    radar.backward(length)
+    radar.forward(scaled_length)
     radar.penup()
-    radar.goto(0, 0)
+    
+    # Reset pen settings
+    radar.pensize(1)
+    radar.pencolor("green")
 
-# Number of systems
-num_systems = 64
+# Function to simulate detection data
+def generate_detection_data(plane_length, plane_velocity, plane_altitude):
+    detections = []
+    
+    # Number of detection points
+    num_points = 64
+    
+    for i in range(num_points):
+        angle = i * (360 / num_points)
+        
+        # Intensity decreases with distance from center of detection
+        # This creates a more realistic pattern
+        center_angle = random.randint(0, 360)  # Random center of detection
+        angle_diff = min(abs(angle - center_angle), 360 - abs(angle - center_angle))
+        
+        # Distance is affected by plane dimensions and position
+        distance_factor = 1.0
+        if angle_diff < 30:  # Front/back of plane
+            distance_factor = 0.7 + (plane_length / 200)
+        elif angle_diff < 60:  # Side of plane
+            distance_factor = 0.5 + (plane_length / 300)
+        else:  # Far from plane
+            distance_factor = random.uniform(0.1, 0.3)
+            
+        # Add some randomness for realism
+        distance = random.uniform(50, 300) * distance_factor
+        
+        # Signal intensity (0.0 to 1.0)
+        intensity = max(0.1, min(1.0, (1.0 - (angle_diff / 180)) * (plane_altitude / 40000)))
+        
+        detections.append((distance, angle, intensity))
+    
+    return detections
 
-# Lengths for each system (example values, replace with actual lengths)
-lengths = [100, 120, 140, 160, 180, 200, 220, 250, 160, 180, 100, 120, 240, 360, 380, 300,
-           60, 90, 160, 180, 200, 220, 240, 260, 280, 200, 120, 140, 160, 180, 200, 220, 
-           100, 120, 140, 160, 180, 200, 220, 250, 160, 180, 100, 120, 240, 360, 380, 300,
-           60, 90, 160, 180, 200, 220, 240, 260, 280, 200, 120, 140, 160, 180, 200, 220,]
+# Function to display plane information
+def display_info(plane_length, plane_velocity, plane_altitude):
+    info_display.clear()
+    info_display.write(f"Plane Length: {plane_length:.2f} m\n"
+                       f"Plane Velocity: {plane_velocity:.2f} m/s\n"
+                       f"Plane Altitude: {plane_altitude:.2f} m\n"
+                       f"Beam Distance: {beam_distance} m", 
+                       font=("Arial", 12, "normal"))
 
-# Draw lines for each system
-for i in range(num_systems):
-    angle = i * (180 / num_systems)
-    draw_line(lengths[i], angle)
+# Main simulation function
+def run_simulation():
+    screen.clear()
+    screen.bgcolor("black")
+    
+    # Reset turtles
+    radar.reset()
+    radar.speed(0)
+    radar.hideturtle()
+    radar.pencolor("green")
+    
+    info_display.reset()
+    info_display.speed(0)
+    info_display.hideturtle()
+    info_display.penup()
+    info_display.goto(-380, 350)
+    info_display.color("white")
+    
+    # Get user inputs
+    try:
+        screen.title("Enter values in the console")
+        time_silent = float(input("Enter the TimeSilent (seconds): "))
+        time_right = float(input("Enter the Time Right (seconds): "))
+        t2 = float(input("Enter the time at which the cone was hit after the cylinder (seconds): "))
+        
+        # Calculate plane parameters
+        plane_length = find_length(time_silent, time_right)
+        plane_velocity = find_velocity(time_right)
+        plane_altitude = find_altitude(t2, time_right)
+        
+        # Draw the radar display
+        draw_radar_circle()
+        
+        # Generate and display detection data
+        detections = generate_detection_data(plane_length, plane_velocity, plane_altitude)
+        for distance, angle, intensity in detections:
+            draw_detection(distance, angle, intensity)
+        
+        # Display plane information
+        display_info(plane_length, plane_velocity, plane_altitude)
+        
+        # Add simulation controls
+        screen.title(f"SPI-R Quantum Radar - Object Detected at {plane_altitude:.0f}m")
+        
+    except ValueError as e:
+        info_display.write(f"Error: {str(e)}\nPlease restart the simulation.", 
+                          font=("Arial", 12, "normal"))
+    
+    screen.mainloop()
 
-# Keep the window open until clicked
-screen.mainloop()
+# Start the simulation
+if __name__ == "__main__":
+    run_simulation()
