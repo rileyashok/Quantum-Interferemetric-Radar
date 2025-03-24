@@ -1,15 +1,17 @@
-#SPI-R Output
-
 import pygame
 import sys
-import math
 import time
 
 # Initialize Pygame
 pygame.init()
 
-# Constants
+# Window settings
 WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Plane Detection Simulation")
+clock = pygame.time.Clock()
+
+# Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BLUE = (100, 150, 255)
@@ -18,44 +20,44 @@ GRAY = (100, 100, 100)
 LIGHT_GRAY = (200, 200, 200)
 RED = (255, 100, 100)
 GREEN = (100, 255, 100)
-YELLOW = (255, 255, 0)
 
-# Simulation parameters (preset)
-BEAM_DISTANCE = 20.0  # meters
-HALF_BEAM_DISTANCE = 10.0  # meters
+# Fonts
+font = pygame.font.SysFont('Arial', 16)
+large_font = pygame.font.SysFont('Arial', 24, bold=True)
+
+# Real-world measurements
+BEAM_DISTANCE = 20.0  # meters between beams
 HEIGHT_INITIAL = 35000  # meters, satellite height
-TIME_SILENT = 0.2  # seconds
-TIME_RIGHT = 0.1  # seconds
-T2 = 0.25  # seconds after cylinder hit
+TIME_SILENT = 0.2  # seconds plane is silent
+TIME_RIGHT = 0.1  # seconds plane is detected by right beam
+T2 = 0.25  # seconds between cylinder and cone detection
 
 # Calculated metrics
 PLANE_LENGTH = ((TIME_SILENT / TIME_RIGHT) + 1) * BEAM_DISTANCE
 PLANE_VELOCITY = BEAM_DISTANCE / TIME_RIGHT
 D1 = PLANE_VELOCITY * T2
-HEIGHT_PLANE = (HEIGHT_INITIAL * D1) / HALF_BEAM_DISTANCE
+HEIGHT_PLANE = (HEIGHT_INITIAL * D1) / (BEAM_DISTANCE / 2)
 
-# Scale for display (pixels per meter)
+# Display scale (pixels per meter)
 SCALE = 2
 BEAM_DISTANCE_PX = BEAM_DISTANCE * SCALE
 
-# Setup display
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("SPI-R Plane Detection Simulation")
-clock = pygame.time.Clock()
-font = pygame.font.SysFont('Arial', 16)
-large_font = pygame.font.SysFont('Arial', 24, bold=True)
+# Simulation states
+STATE_READY = 0      # Initial state, showing start button
+STATE_BEAMS = 1      # Beams appear
+STATE_PLANE_APPROACH = 2  # Plane starts moving
+STATE_HIT_BEAM1 = 3  # Plane hits first beam
+STATE_HIT_BEAM2 = 4  # Plane hits second beam
+STATE_RESULTS = 5    # Show results
 
-# Define simulation states
-STATE_READY = 0
-STATE_BEAMS = 1
-STATE_PLANE_APPROACH = 2
-STATE_HIT_BEAM1 = 3
-STATE_HIT_BEAM2 = 4
-STATE_RESULTS = 5
-
-# Initialize simulation state
+# Initialize simulation variables
 state = STATE_READY
 animation_start_time = 0
+plane_x = -100
+beam1_flash = 0
+beam2_flash = 0
+
+# When each animation state should start (seconds from start)
 transition_times = {
     STATE_BEAMS: 1.0,
     STATE_PLANE_APPROACH: 2.0,
@@ -64,14 +66,9 @@ transition_times = {
     STATE_RESULTS: 4.5
 }
 
-# Track animation properties
-plane_x = -100
-beam1_flash = 0
-beam2_flash = 0
-show_results = False
-
 def draw_satellite(x, y):
-    # Satellite body
+    """Draw the satellite at the top of the screen"""
+    # Main body
     pygame.draw.rect(screen, GRAY, (x - 20, y, 40, 15), border_radius=5)
     # Antenna
     pygame.draw.rect(screen, BLACK, (x - 2, y + 15, 4, 10))
@@ -80,13 +77,14 @@ def draw_satellite(x, y):
     pygame.draw.rect(screen, LIGHT_BLUE, (x + 25, y + 5, 15, 5))
 
 def draw_beams(x1, x2, y_start, height):
+    """Draw the detection beams"""
     # Beam labels
     text1 = font.render("Cylinder Beam", True, BLACK)
     text2 = font.render("Cone Beam", True, BLACK)
     screen.blit(text1, (x1 - 40, y_start - 30))
     screen.blit(text2, (x2 - 40, y_start - 30))
     
-    # Draw beams
+    # Draw beams - flash red/green when detecting plane
     beam1_color = RED if beam1_flash > 0 else (255, 0, 0, 128)
     beam2_color = GREEN if beam2_flash > 0 else (0, 255, 0, 128)
     
@@ -95,35 +93,43 @@ def draw_beams(x1, x2, y_start, height):
     # Right beam (cone)
     pygame.draw.line(screen, beam2_color, (x2, y_start), (x2, y_start + height), 3)
     
-    # Distance line
+    # Draw distance marker between beams
     pygame.draw.line(screen, BLACK, (x1, y_start + height + 10), (x2, y_start + height + 10), 1)
-    # Distance arrows
     pygame.draw.line(screen, BLACK, (x1, y_start + height + 7), (x1, y_start + height + 13), 1)
     pygame.draw.line(screen, BLACK, (x2, y_start + height + 7), (x2, y_start + height + 13), 1)
-    # Distance text
     text = font.render(f"{BEAM_DISTANCE}m", True, BLACK)
     screen.blit(text, ((x1 + x2) // 2 - 15, y_start + height + 15))
 
 def draw_plane(x, y, length):
-    scaled_length = max(50, min(length * SCALE, 100))  # Scale but keep reasonable size
+    """Draw the airplane"""
+    scaled_length = max(50, min(length * SCALE, 100))  # Keep size reasonable
+    
     # Plane body
     pygame.draw.rect(screen, LIGHT_GRAY, (x - scaled_length // 2, y, scaled_length, 10), border_radius=3)
+    
     # Wings
     wing_width = scaled_length // 3
     pygame.draw.polygon(screen, GRAY, [(x - wing_width, y + 5), (x, y - 5), (x + wing_width, y + 5)])
+    
     # Tail
     tail_height = 15
-    pygame.draw.polygon(screen, GRAY, [(x - scaled_length // 3, y + 5), (x - scaled_length // 2, y - tail_height), (x - scaled_length // 2 + 10, y + 5)])
+    pygame.draw.polygon(screen, GRAY, [(x - scaled_length // 3, y + 5), 
+                                      (x - scaled_length // 2, y - tail_height), 
+                                      (x - scaled_length // 2 + 10, y + 5)])
 
 def draw_result_box(x, y, width, height, title, value, unit=""):
+    """Draw a single result box with a title and value"""
     pygame.draw.rect(screen, WHITE, (x, y, width, height), border_radius=5)
     pygame.draw.rect(screen, LIGHT_GRAY, (x, y, width, height), 1, border_radius=5)
+    
     title_text = font.render(title, True, GRAY)
     value_text = font.render(f"{value:.2f} {unit}", True, BLACK)
+    
     screen.blit(title_text, (x + 10, y + 10))
     screen.blit(value_text, (x + 10, y + 30))
 
 def draw_results():
+    """Draw all results at the bottom of the screen"""
     # Title
     title = large_font.render("Detection Results", True, BLACK)
     screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 400))
@@ -134,15 +140,20 @@ def draw_results():
     margin = 20
     
     # First row
-    draw_result_box(WIDTH // 2 - box_width - margin // 2, 440, box_width, box_height, "Plane Length", PLANE_LENGTH, "m")
-    draw_result_box(WIDTH // 2 + margin // 2, 440, box_width, box_height, "Plane Velocity", PLANE_VELOCITY, "m/s")
+    draw_result_box(WIDTH // 2 - box_width - margin // 2, 440, 
+                   box_width, box_height, "Plane Length", PLANE_LENGTH, "m")
+    draw_result_box(WIDTH // 2 + margin // 2, 440, 
+                   box_width, box_height, "Plane Velocity", PLANE_VELOCITY, "m/s")
     
     # Second row
-    draw_result_box(WIDTH // 2 - box_width - margin // 2, 440 + box_height + 10, box_width, box_height, "Time Between Beams", T2, "s")
-    draw_result_box(WIDTH // 2 + margin // 2, 440 + box_height + 10, box_width, box_height, "Plane Altitude", HEIGHT_PLANE, "m")
+    draw_result_box(WIDTH // 2 - box_width - margin // 2, 440 + box_height + 10, 
+                   box_width, box_height, "Time Between Beams", T2, "s")
+    draw_result_box(WIDTH // 2 + margin // 2, 440 + box_height + 10, 
+                   box_width, box_height, "Plane Altitude", HEIGHT_PLANE, "m")
 
 def draw_ui():
-    # Draw sky background
+    """Draw the entire UI"""
+    # Sky background
     screen.fill(LIGHT_BLUE)
     pygame.draw.rect(screen, BLUE, (0, 0, WIDTH, 150))
     
@@ -150,7 +161,7 @@ def draw_ui():
     title = large_font.render("SPI-R Plane Detection Simulation", True, WHITE)
     screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 20))
     
-    # Draw satellite at top
+    # Draw satellite
     draw_satellite(WIDTH // 2, 80)
     
     # Draw beams if active
@@ -163,39 +174,38 @@ def draw_ui():
     if state >= STATE_PLANE_APPROACH:
         draw_plane(plane_x, 250, PLANE_LENGTH)
     
-    # Draw results if active
+    # Draw results when complete
     if state >= STATE_RESULTS:
         draw_results()
     
-    # Draw play button if in ready state
+    # Draw play button at start
     if state == STATE_READY:
         button_width, button_height = 150, 50
         button_x = WIDTH // 2 - button_width // 2
         button_y = HEIGHT // 2 - button_height // 2
         
-        # Draw button
-        pygame.draw.rect(screen, (50, 100, 255), (button_x, button_y, button_width, button_height), border_radius=10)
+        pygame.draw.rect(screen, (50, 100, 255), 
+                        (button_x, button_y, button_width, button_height), border_radius=10)
         
-        # Button text
         button_text = font.render("Play Simulation", True, WHITE)
         screen.blit(button_text, (button_x + button_width // 2 - button_text.get_width() // 2,
                                  button_y + button_height // 2 - button_text.get_height() // 2))
     
-    # Draw reset button if simulation has finished
+    # Draw reset button at end
     if state == STATE_RESULTS:
         reset_width, reset_height = 120, 40
         reset_x = WIDTH // 2 - reset_width // 2
         reset_y = HEIGHT - 60
         
-        # Draw button
-        pygame.draw.rect(screen, (200, 50, 50), (reset_x, reset_y, reset_width, reset_height), border_radius=8)
+        pygame.draw.rect(screen, (200, 50, 50), 
+                        (reset_x, reset_y, reset_width, reset_height), border_radius=8)
         
-        # Button text
         reset_text = font.render("Reset", True, WHITE)
         screen.blit(reset_text, (reset_x + reset_width // 2 - reset_text.get_width() // 2,
-                                reset_y + reset_height // 2 - reset_text.get_height() // 2))
+                               reset_y + reset_height // 2 - reset_text.get_height() // 2))
 
 def handle_events():
+    """Process user input and events"""
     global state, animation_start_time, plane_x, beam1_flash, beam2_flash
     
     for event in pygame.event.get():
@@ -233,8 +243,12 @@ def handle_events():
                     beam2_flash = 0
 
 def update_animation():
+    """Update animation based on elapsed time"""
     global state, plane_x, beam1_flash, beam2_flash
     
+    if state == STATE_READY:
+        return
+        
     current_time = time.time()
     elapsed = current_time - animation_start_time
     
@@ -243,7 +257,7 @@ def update_animation():
         if state < next_state and elapsed >= trigger_time:
             state = next_state
             
-            # Special actions when entering certain states
+            # Flash beams when plane passes through
             if state == STATE_HIT_BEAM1:
                 beam1_flash = 10
             elif state == STATE_HIT_BEAM2:
@@ -272,13 +286,13 @@ def update_animation():
         beam2_flash -= 1
 
 def main():
-    # Main game loop
+    """Main program loop"""
     while True:
         handle_events()
         update_animation()
         draw_ui()
         pygame.display.flip()
-        clock.tick(30)
+        clock.tick(30)  # 30 frames per second
 
 if __name__ == "__main__":
     main()
