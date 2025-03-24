@@ -1,206 +1,89 @@
-import React, { useState, useEffect } from 'react';
+import numpy as np
+import matplotlib.pyplot as plt
 
-const SPIRSimulation = () => {
-  // State variables for inputs
-  const [timeSilent, setTimeSilent] = useState(1.5);
-  const [timeRight, setTimeRight] = useState(0.5);
-  const [t2, setT2] = useState(0.35);
-  const [running, setRunning] = useState(false);
-  const [planePosition, setPlanePosition] = useState(0);
-  const [showResults, setShowResults] = useState(false);
-  const [error, setError] = useState(null);
-  
-  // Constants
-  const beamDistance = 20.0; // meters
-  const halfBeamDistance = 10.0; // meters
-  const heightInitial = 35000; // meters (satellite height)
-  
-  // Calculation functions (adapted from the provided code)
-  const find_length = (ts, tr) => {
-    const parenthesis1 = ts / tr;
-    const parenthesis2 = parenthesis1 + 1;
-    return parenthesis2 * beamDistance;
-  };
-  
-  const find_velocity = (tr) => {
-    return beamDistance / tr;
-  };
-  
-  const find_altitude = (tr, t2) => {
-    const planeVelocity = find_velocity(tr);
-    const d1 = planeVelocity * t2; // t1 is 0 in the original code
-    return (heightInitial * d1) / halfBeamDistance;
-  };
-  
-  // Results
-  const planeLength = find_length(timeSilent, timeRight);
-  const planeVelocity = find_velocity(timeRight);
-  const planeAltitude = find_altitude(timeRight, t2);
-  
-  // Animation effect
-  useEffect(() => {
-    if (!running) return;
-    
-    const animationSpeed = 20; // ms
-    const totalDistance = 300; // px
-    const totalFrames = 100;
-    
-    let frame = 0;
-    const interval = setInterval(() => {
-      frame++;
-      setPlanePosition((frame / totalFrames) * totalDistance);
-      
-      if (frame >= totalFrames) {
-        setRunning(false);
-        setShowResults(true);
-      }
-    }, animationSpeed);
-    
-    return () => clearInterval(interval);
-  }, [running]);
-  
-  // Handle simulation start
-  const startSimulation = () => {
-    // Basic input validation
-    if (timeSilent <= 0 || timeRight <= 0 || t2 < 0) {
-      setError("All time values must be positive");
-      return;
-    }
-    
-    // Reset state
-    setError(null);
-    setShowResults(false);
-    setPlanePosition(0);
-    setRunning(true);
-  };
-  
-  return (
-    <div className="flex flex-col items-center w-full max-w-4xl p-4 bg-gray-100 rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">SPI-R Aircraft Detection Simulation</h2>
-      
-      {/* Input controls */}
-      <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="p-2">
-          <label className="block mb-1 text-sm font-medium">
-            Time Silent (s):
-            <input 
-              type="number" 
-              value={timeSilent}
-              onChange={(e) => setTimeSilent(parseFloat(e.target.value) || 0)}
-              min="0.1"
-              step="0.1"
-              className="w-full p-2 border rounded"
-            />
-          </label>
-        </div>
-        
-        <div className="p-2">
-          <label className="block mb-1 text-sm font-medium">
-            Time Right (s):
-            <input 
-              type="number" 
-              value={timeRight}
-              onChange={(e) => setTimeRight(parseFloat(e.target.value) || 0)}
-              min="0.1"
-              step="0.1"
-              className="w-full p-2 border rounded"
-            />
-          </label>
-        </div>
-        
-        <div className="p-2">
-          <label className="block mb-1 text-sm font-medium">
-            Cone Hit Time (s):
-            <input 
-              type="number" 
-              value={t2}
-              onChange={(e) => setT2(parseFloat(e.target.value) || 0)}
-              min="0"
-              step="0.1"
-              className="w-full p-2 border rounded"
-            />
-          </label>
-        </div>
-      </div>
-      
-      <button 
-        onClick={startSimulation}
-        disabled={running}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300"
-      >
-        {running ? "Simulating..." : "Run Simulation"}
-      </button>
-      
-      {error && (
-        <div className="mt-4 p-2 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-      
-      {/* Visualization area */}
-      <div className="w-full h-64 mt-8 bg-blue-50 border border-blue-200 rounded-lg relative">
-        {/* Satellite */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
-          <div className="w-12 h-8 bg-gray-400 rounded-lg flex items-center justify-center text-xs text-white">
-            Satellite
-          </div>
-        </div>
-        
-        {/* Left Beam (cylinder) */}
-        <div className="absolute top-12 left-1/3 w-1 h-32 bg-red-400 opacity-50" />
-        
-        {/* Right Beam (cone) */}
-        <div className="absolute top-12 right-1/3 w-1 h-32 bg-green-400 opacity-50" />
-        
-        {/* Labels */}
-        <div className="absolute top-44 left-1/3 text-xs -ml-6">Beam 1</div>
-        <div className="absolute top-44 right-1/3 text-xs -ml-6">Beam 2</div>
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">
-          {beamDistance}m
-        </div>
-        
-        {/* Plane */}
-        {running && (
-          <div 
-            className="absolute bottom-8" 
-            style={{ 
-              left: `${planePosition}px`,
-              transition: 'left 0.1s linear'
-            }}
-          >
-            <div className="w-20 h-4 bg-gray-700 rounded-lg relative">
-              <div className="w-6 h-6 bg-gray-800 absolute -top-4 left-8 transform -translate-x-1/2 rounded-full" />
-              <div className="w-10 h-1 bg-gray-800 absolute top-2 -left-8 transform rotate-45" />
-              <div className="w-10 h-1 bg-gray-800 absolute top-2 -right-8 transform -rotate-45" />
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Results display */}
-      {showResults && (
-        <div className="w-full mt-6 p-4 bg-white rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2">Detection Results</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 p-3 rounded">
-              <div className="text-sm text-gray-500">Aircraft Length</div>
-              <div className="text-xl font-bold">{planeLength.toFixed(2)} m</div>
-            </div>
-            <div className="bg-green-50 p-3 rounded">
-              <div className="text-sm text-gray-500">Aircraft Velocity</div>
-              <div className="text-xl font-bold">{planeVelocity.toFixed(2)} m/s</div>
-              <div className="text-xs text-gray-500">({(planeVelocity * 2.23694).toFixed(2)} mph)</div>
-            </div>
-            <div className="bg-amber-50 p-3 rounded">
-              <div className="text-sm text-gray-500">Aircraft Altitude</div>
-              <div className="text-xl font-bold">{planeAltitude.toFixed(2)} m</div>
-              <div className="text-xs text-gray-500">({(planeAltitude * 3.28084).toFixed(2)} ft)</div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+# Constants for reference
+beamDistance = 20.0  # d
+timeSilent = 0.0  # ts
+timeRight = 0.0  # tr
 
-export default SPIRSimulation;
+# Variables for find_length
+parenthesis1 = 0.0
+parenthesis2 = 0.0
+planeLength = 0.0  # Length of the plane
+
+# Variables for find_velocity
+planeVelocity = 0.0  # Velocity of the plane
+
+# Variables for find_altitude
+heightInitial = 35000  # h0, meters, height of the satellite
+heightPlane = 0.0  # h2
+halfBeamDistance = 10  # w0, half the beam distance
+
+# Functions for calculations
+def find_length(timeSilent, timeRight):
+    global parenthesis1, parenthesis2, planeLength
+    parenthesis1 = timeSilent / timeRight
+    parenthesis2 = parenthesis1 + 1
+    planeLength = parenthesis2 * beamDistance
+    return planeLength
+
+def find_velocity(timeRight):
+    global planeVelocity
+    planeVelocity = beamDistance / timeRight
+    return planeVelocity
+
+def find_altitude(t2):
+    global heightPlane
+    d1 = find_velocity(timeRight) * (t2)
+    heightPlane = (heightInitial * d1) / halfBeamDistance
+    return heightPlane
+
+# Main code to accept user input
+try:
+    # Input values
+    timeSilent = float(input("Enter the TimeSilent: "))
+    timeRight = float(input("Enter the Time Right: "))
+    t2 = float(input("Enter the time at which the cone was hit after the cylinder: "))
+
+    # Perform calculations
+    length = find_length(timeSilent, timeRight)
+    planeVelocity = find_velocity(timeRight)
+    heightPlane = find_altitude(t2)
+
+    # Output calculated values
+    print(f"The length of the plane is: {length} meters")
+    print(f"The velocity of the plane is: {planeVelocity} m/s")
+    print(f"The altitude of the plane is: {heightPlane} meters")
+
+except ValueError:
+    print("Invalid input. Please enter numeric values.")
+
+# Visualization of Plane Velocity and Altitude over Time
+# Generate time values for the plot
+time = np.linspace(0, 100, 100)  # Time from 0 to 100 seconds
+
+# Compute velocity and altitude over time
+velocity = np.array([find_velocity(t) for t in time])  # Replace 't' with actual time steps
+altitude = np.array([find_altitude(t) for t in time])  # Replace 't' with actual time steps
+
+# Plotting the velocity vs time
+plt.figure(figsize=(12, 6))
+
+# Plot for velocity over time
+plt.subplot(1, 2, 1)
+plt.plot(time, velocity, color='b')
+plt.title('Plane Velocity over Time')
+plt.xlabel('Time (s)')
+plt.ylabel('Velocity (m/s)')
+plt.grid(True)
+
+# Plot for altitude over time
+plt.subplot(1, 2, 2)
+plt.plot(time, altitude, color='g')
+plt.title('Plane Altitude over Time')
+plt.xlabel('Time (s)')
+plt.ylabel('Altitude (m)')
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
