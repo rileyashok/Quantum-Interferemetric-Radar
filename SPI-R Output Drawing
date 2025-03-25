@@ -1,89 +1,133 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import pygame
+import sys
+import time
 
-# Constants for reference
-beamDistance = 20.0  # d
-timeSilent = 0.0  # ts
-timeRight = 0.0  # tr
+# Initialize Pygame
+pygame.init()
 
-# Variables for find_length
-parenthesis1 = 0.0
-parenthesis2 = 0.0
-planeLength = 0.0  # Length of the plane
+# Screen dimensions
+WIDTH, HEIGHT = 800, 600
 
-# Variables for find_velocity
-planeVelocity = 0.0  # Velocity of the plane
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 50, 50)
+BLUE = (50, 100, 255)
+GREEN = (0, 255, 0)
+GRAY = (150, 150, 150)
 
-# Variables for find_altitude
-heightInitial = 35000  # h0, meters, height of the satellite
-heightPlane = 0.0  # h2
-halfBeamDistance = 10  # w0, half the beam distance
+# Simulation parameters
+BEAM_DISTANCE = 20.0  # meters
+SATELLITE_HEIGHT = 35000  # meters
+TIME_SILENT = 0.2  # seconds
+TIME_RIGHT = 0.1  # seconds
 
-# Functions for calculations
-def find_length(timeSilent, timeRight):
-    global parenthesis1, parenthesis2, planeLength
-    parenthesis1 = timeSilent / timeRight
-    parenthesis2 = parenthesis1 + 1
-    planeLength = parenthesis2 * beamDistance
-    return planeLength
+# Calculated metrics
+PLANE_LENGTH = ((TIME_SILENT / TIME_RIGHT) + 1) * BEAM_DISTANCE
+PLANE_VELOCITY = BEAM_DISTANCE / TIME_RIGHT
 
-def find_velocity(timeRight):
-    global planeVelocity
-    planeVelocity = beamDistance / timeRight
-    return planeVelocity
+# Setup display
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("SPI-R Plane Detection")
+clock = pygame.time.Clock()
+font = pygame.font.Font(None, 24)
 
-def find_altitude(t2):
-    global heightPlane
-    d1 = find_velocity(timeRight) * (t2)
-    heightPlane = (heightInitial * d1) / halfBeamDistance
-    return heightPlane
+# Simulation states
+STATE_READY = 0
+STATE_RUNNING = 1
+STATE_COMPLETE = 2
 
-# Main code to accept user input
-try:
-    # Input values
-    timeSilent = float(input("Enter the TimeSilent: "))
-    timeRight = float(input("Enter the Time Right: "))
-    t2 = float(input("Enter the time at which the cone was hit after the cylinder: "))
+# Initialize state
+state = STATE_READY
+start_time = 0
+plane_x = -100
 
-    # Perform calculations
-    length = find_length(timeSilent, timeRight)
-    planeVelocity = find_velocity(timeRight)
-    heightPlane = find_altitude(t2)
+def draw_background():
+    screen.fill(RED)
+    title = font.render("SPI-R Plane Detection Simulation", True, WHITE)
+    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 50))
 
-    # Output calculated values
-    print(f"The length of the plane is: {length} meters")
-    print(f"The velocity of the plane is: {planeVelocity} m/s")
-    print(f"The altitude of the plane is: {heightPlane} meters")
+def draw_satellite():
+    pygame.draw.rect(screen, GRAY, (WIDTH // 2 - 20, 100, 40, 20))
 
-except ValueError:
-    print("Invalid input. Please enter numeric values.")
+def draw_beams():
+    beam1_x = WIDTH // 2 - 100
+    beam2_x = WIDTH // 2 + 100
+    
+    pygame.draw.line(screen, GREEN, (beam1_x, 150), (beam1_x, 400), 3)
+    pygame.draw.line(screen, BLUE, (beam2_x, 150), (beam2_x, 400), 3)
 
-# Visualization of Plane Velocity and Altitude over Time
-# Generate time values for the plot
-time = np.linspace(0, 100, 100)  # Time from 0 to 100 seconds
+def draw_plane(x):
+    pygame.draw.rect(screen, GRAY, (x, 250, 50, 10))
 
-# Compute velocity and altitude over time
-velocity = np.array([find_velocity(t) for t in time])  # Replace 't' with actual time steps
-altitude = np.array([find_altitude(t) for t in time])  # Replace 't' with actual time steps
+def draw_results():
+    results = [
+        f"Plane Length: {PLANE_LENGTH:.2f} m",
+        f"Plane Velocity: {PLANE_VELOCITY:.2f} m/s",
+        f"Beam Distance: {BEAM_DISTANCE} m"
+    ]
+    
+    for i, result in enumerate(results):
+        text = font.render(result, True, WHITE)
+        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, 400 + i * 30))
 
-# Plotting the velocity vs time
-plt.figure(figsize=(12, 6))
+def update_animation():
+    global plane_x, state
+    
+    elapsed_time = time.time() - start_time
+    
+    # Debugging print statement to check time and plane position
+    print(f"Elapsed Time: {elapsed_time:.2f}, Plane X: {plane_x}")
+    
+    if elapsed_time < 2:
+        # Plane approaching first beam
+        plane_x = -100 + elapsed_time * 300
+    elif elapsed_time < 3:
+        # Plane between beams
+        plane_x = WIDTH // 2 - 25
+    elif elapsed_time < 4:
+        # Plane after second beam
+        plane_x = WIDTH // 2 + 100 + (elapsed_time - 3) * 300
+    else:
+        # Plane has passed all points, end simulation
+        state = STATE_COMPLETE
+        plane_x = WIDTH // 2 + 100  # Position the plane after the second beam.
 
-# Plot for velocity over time
-plt.subplot(1, 2, 1)
-plt.plot(time, velocity, color='b')
-plt.title('Plane Velocity over Time')
-plt.xlabel('Time (s)')
-plt.ylabel('Velocity (m/s)')
-plt.grid(True)
+def main():
+    global state, start_time, plane_x
+    
+    while True:
+        # Event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if state == STATE_READY:
+                    state = STATE_RUNNING
+                    start_time = time.time()  # Reset the start time when the simulation starts
+                elif state == STATE_COMPLETE:
+                    state = STATE_READY
+                    plane_x = -100
+        
+        # Drawing
+        draw_background()
+        draw_satellite()
+        draw_beams()
+        
+        # Animation logic
+        if state == STATE_RUNNING:
+            update_animation()
+            draw_plane(plane_x)
+        
+        if state == STATE_COMPLETE:
+            draw_plane(plane_x)
+            draw_results()
+        
+        # Update display
+        pygame.display.flip()
+        clock.tick(30)
 
-# Plot for altitude over time
-plt.subplot(1, 2, 2)
-plt.plot(time, altitude, color='g')
-plt.title('Plane Altitude over Time')
-plt.xlabel('Time (s)')
-plt.ylabel('Altitude (m)')
-plt.grid(True)
-
-plt.tight_layout()
-plt.show()
+if __name__ == "__main__":
+    main()
