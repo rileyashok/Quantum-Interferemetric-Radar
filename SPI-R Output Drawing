@@ -8,7 +8,7 @@ import random
 pygame.init()
 
 # Screen dimensions
-WIDTH, HEIGHT = 1000, 700
+WIDTH, HEIGHT = 1200, 800
 
 # Colors
 WHITE = (255, 255, 255)
@@ -18,17 +18,18 @@ DEEP_SKY_BLUE = (100, 149, 237)
 LIGHT_BLUE = (173, 216, 230)
 RED = (255, 50, 50)
 BLUE = (50, 100, 255)
-GREEN = (0, 255, 0)
+GREEN = (0, 100, 0)
 GRAY = (150, 150, 150)
 DARK_GRAY = (100, 100, 100)
 SILVER = (192, 192, 192)
 METALLIC_GRAY = (105, 105, 105)
+STEALTH_GRAY = (70, 70, 70)
 
 class PlaneDetectionSimulation:
     def __init__(self):
         # Screen setup
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption("SPI-R Plane Detection Simulation")
+        pygame.display.set_caption("Advanced Plane Detection Simulation")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 24)
         
@@ -44,6 +45,7 @@ class PlaneDetectionSimulation:
         self.plane_speed = 0
         self.plane_direction = 0
         self.plane_altitude = 0
+        self.is_stealth = False
         
         # Simulation states
         self.STATE_INPUT = 0
@@ -62,14 +64,33 @@ class PlaneDetectionSimulation:
             {"label": "Plane Length (m):", "value": "", "rect": pygame.Rect(WIDTH//2 - 150, 300, 200, 30)},
             {"label": "Plane Speed (m/s):", "value": "", "rect": pygame.Rect(WIDTH//2 - 150, 350, 200, 30)},
             {"label": "Direction (degrees):", "value": "", "rect": pygame.Rect(WIDTH//2 - 150, 400, 200, 30)},
-            {"label": "Altitude (m):", "value": "", "rect": pygame.Rect(WIDTH//2 - 150, 450, 200, 30)}
+            {"label": "Altitude (m):", "value": "", "rect": pygame.Rect(WIDTH//2 - 150, 450, 200, 30)},
+            {"label": "Stealth (Y/N):", "value": "", "rect": pygame.Rect(WIDTH//2 - 150, 500, 200, 30)}
         ]
         self.active_input = None
+        
+        # Radar grid
+        self.radar_grid = self.create_radar_grid()
+    
+    def create_radar_grid(self):
+        # Create a grid to simulate radar detection
+        grid = []
+        grid_size = 10
+        cell_width = WIDTH // grid_size
+        cell_height = HEIGHT // grid_size
+        
+        for row in range(grid_size):
+            for col in range(grid_size):
+                grid.append({
+                    'rect': pygame.Rect(col * cell_width, row * cell_height, cell_width, cell_height),
+                    'detected': False
+                })
+        return grid
     
     def generate_stars(self):
         # Generate a background of stars
         stars = []
-        for _ in range(100):
+        for _ in range(150):
             x = random.randint(0, WIDTH)
             y = random.randint(0, 200)  # Stars only in upper part of sky
             size = random.randint(1, 3)
@@ -94,7 +115,7 @@ class PlaneDetectionSimulation:
         self.draw_sky_background()
         
         # Title
-        title = self.font.render("SPI-R Plane Detection Simulation", True, WHITE)
+        title = self.font.render("Advanced Plane Detection Simulation", True, WHITE)
         self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 50))
         
         # Input fields
@@ -112,9 +133,9 @@ class PlaneDetectionSimulation:
             self.screen.blit(text_surface, (field["rect"].x + 5, field["rect"].y + 5))
         
         # Start button
-        start_button = pygame.Rect(WIDTH//2 - 50, 500, 100, 40)
+        start_button = pygame.Rect(WIDTH//2 - 50, 550, 100, 40)
         pygame.draw.rect(self.screen, GREEN, start_button)
-        start_text = self.font.render("START", True, BLACK)
+        start_text = self.font.render("START", True, WHITE)
         self.screen.blit(start_text, (start_button.x + 25, start_button.y + 10))
         
         return start_button
@@ -126,34 +147,22 @@ class PlaneDetectionSimulation:
         # Main body (central solar panel array)
         pygame.draw.rect(self.screen, METALLIC_GRAY, (sat_x - 60, sat_y - 10, 120, 20))
         
-        # Solar panels
-        panel_color = DARK_GRAY
-        pygame.draw.rect(self.screen, panel_color, (sat_x - 100, sat_y - 5, 40, 10))  # Left panel
-        pygame.draw.rect(self.screen, panel_color, (sat_x + 60, sat_y - 5, 40, 10))  # Right panel
-        
-        # Antenna
-        pygame.draw.line(self.screen, SILVER, (sat_x, sat_y), (sat_x - 30, sat_y - 50), 2)
-        pygame.draw.line(self.screen, SILVER, (sat_x, sat_y), (sat_x + 30, sat_y - 50), 2)
-        
-        # Sensor array
-        pygame.draw.circle(self.screen, GRAY, (sat_x, sat_y), 15, 2)
-        pygame.draw.circle(self.screen, GRAY, (sat_x, sat_y), 10, 1)
-        
-        # Structural details
-        pygame.draw.line(self.screen, DARK_GRAY, (sat_x - 60, sat_y + 10), (sat_x + 60, sat_y + 10), 3)
-        
-        # Small thruster-like details
-        pygame.draw.circle(self.screen, RED, (sat_x - 40, sat_y + 20), 3)
-        pygame.draw.circle(self.screen, BLUE, (sat_x + 40, sat_y + 20), 3)
+        # Radar beam visualization
+        beam_width = 5
+        beam_color = RED
+        pygame.draw.line(self.screen, beam_color, (sat_x, sat_y), (WIDTH // 2 - 150, HEIGHT), beam_width)
+        pygame.draw.line(self.screen, beam_color, (sat_x, sat_y), (WIDTH // 2 + 150, HEIGHT), beam_width)
     
-    def draw_beams(self):
-        beam1_x = WIDTH // 2 - 100
-        beam2_x = WIDTH // 2 + 100
-        
-        pygame.draw.line(self.screen, GREEN, (beam1_x, 150), (beam1_x, 400), 3)
-        pygame.draw.line(self.screen, BLUE, (beam2_x, 150), (beam2_x, 400), 3)
+    def draw_radar_grid(self):
+        # Draw the radar detection grid
+        for cell in self.radar_grid:
+            color = BLUE if cell['detected'] else (50, 50, 50)
+            pygame.draw.rect(self.screen, color, cell['rect'], 1)
     
     def draw_plane(self, x, y, angle=0):
+        # Plane color based on stealth status
+        plane_color = STEALTH_GRAY if self.is_stealth else SILVER
+        
         # Create a more detailed plane representation
         # Body
         body_length = 40
@@ -177,43 +186,28 @@ class PlaneDetectionSimulation:
             rotated_points.append((rotated_x + x, rotated_y + y))
         
         # Draw the plane body
-        pygame.draw.polygon(self.screen, SILVER, rotated_points)
-        
-        # Wings
-        wing_length = 20
-        wing_width = 4
-        
-        # Left wing
-        left_wing_points = [
-            (x - body_length/2, y),
-            (x - body_length/2 - wing_length, y - wing_width),
-            (x - body_length/2, y)
-        ]
-        pygame.draw.polygon(self.screen, DARK_GRAY, left_wing_points)
-        
-        # Right wing
-        right_wing_points = [
-            (x - body_length/2, y),
-            (x - body_length/2 - wing_length, y + wing_width),
-            (x - body_length/2, y)
-        ]
-        pygame.draw.polygon(self.screen, DARK_GRAY, right_wing_points)
-        
-        # Tail
-        tail_length = 10
-        tail_height = 4
-        pygame.draw.polygon(self.screen, DARK_GRAY, [
-            (x - body_length/2 - tail_length, y - tail_height),
-            (x - body_length/2, y),
-            (x - body_length/2 - tail_length, y + tail_height)
-        ])
+        pygame.draw.polygon(self.screen, plane_color, rotated_points)
+    
+    def update_radar_detection(self):
+        # Simulate radar detection based on plane location and stealth status
+        for cell in self.radar_grid:
+            # Check if plane's current position overlaps with grid cell
+            if cell['rect'].collidepoint(self.plane_x, self.plane_y):
+                # Stealth planes have lower detection probability
+                if not self.is_stealth or random.random() > 0.7:
+                    cell['detected'] = True
     
     def draw_results(self):
+        # Detected location information
+        detected_cells = [cell for cell in self.radar_grid if cell['detected']]
+        
         results = [
             f"Plane Length: {self.plane_length:.2f} m",
             f"Plane Speed: {self.plane_speed:.2f} m/s",
             f"Direction: {self.plane_direction:.2f} degrees",
-            f"Altitude: {self.plane_altitude:.2f} m"
+            f"Altitude: {self.plane_altitude:.2f} m",
+            f"Stealth Status: {'Stealth' if self.is_stealth else 'Conventional'}",
+            f"Detected Locations: {len(detected_cells)}"
         ]
         
         for i, result in enumerate(results):
@@ -246,6 +240,9 @@ class PlaneDetectionSimulation:
         
         # Vertical movement (optional)
         self.plane_y = 250 + math.sin(t * math.pi) * 50
+        
+        # Update radar detection
+        self.update_radar_detection()
         
         # Check if animation is complete
         if t >= 1:
@@ -281,6 +278,10 @@ class PlaneDetectionSimulation:
                                 self.plane_direction = float(self.input_fields[2]["value"])
                                 self.plane_altitude = float(self.input_fields[3]["value"])
                                 
+                                # Check stealth status
+                                stealth_input = self.input_fields[4]["value"].upper()
+                                self.is_stealth = stealth_input in ['Y', 'YES', 'TRUE']
+                                
                                 # Start simulation
                                 self.state = self.STATE_RUNNING
                                 self.start_time = time.time()
@@ -293,6 +294,9 @@ class PlaneDetectionSimulation:
                         self.plane_x = -100
                         for field in self.input_fields:
                             field["value"] = ""
+                        
+                        # Reset radar grid
+                        self.radar_grid = self.create_radar_grid()
                 
                 # Text input handling
                 if event.type == pygame.KEYDOWN:
@@ -310,7 +314,7 @@ class PlaneDetectionSimulation:
             else:
                 self.draw_sky_background()
                 self.draw_satellite()
-                self.draw_beams()
+                self.draw_radar_grid()
                 
                 # Animation logic
                 if self.state == self.STATE_RUNNING:
