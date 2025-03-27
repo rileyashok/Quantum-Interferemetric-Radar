@@ -20,9 +20,7 @@ RED = (255, 50, 50)
 BLUE = (50, 100, 255)
 GREEN = (0, 100, 0)
 GRAY = (150, 150, 150)
-DARK_GRAY = (100, 100, 100)
 SILVER = (192, 192, 192)
-METALLIC_GRAY = (105, 105, 105)
 STEALTH_GRAY = (70, 70, 70)
 
 class PlaneDetectionSimulation:
@@ -73,9 +71,9 @@ class PlaneDetectionSimulation:
         self.radar_grid = self.create_radar_grid()
     
     def create_radar_grid(self):
-        # Create a grid to simulate radar detection
+        # Create a grid inspired by the notebook sketch
         grid = []
-        grid_size = 10
+        grid_size = 8  # Reduced from 10 to make grid more visible
         cell_width = WIDTH // grid_size
         cell_height = HEIGHT // grid_size
         
@@ -99,13 +97,19 @@ class PlaneDetectionSimulation:
         return stars
     
     def draw_sky_background(self):
-        # Gradient sky background
+        # Gradient sky background inspired by notebook's clean design
         for y in range(HEIGHT):
             # Create a gradient from deep sky blue to light sky blue
             r = int(DEEP_SKY_BLUE[0] + (SKY_BLUE[0] - DEEP_SKY_BLUE[0]) * (y / HEIGHT))
             g = int(DEEP_SKY_BLUE[1] + (SKY_BLUE[1] - DEEP_SKY_BLUE[1]) * (y / HEIGHT))
             b = int(DEEP_SKY_BLUE[2] + (SKY_BLUE[2] - DEEP_SKY_BLUE[2]) * (y / HEIGHT))
             pygame.draw.line(self.screen, (r, g, b), (0, y), (WIDTH, y))
+        
+        # Draw subtle grid lines inspired by notebook
+        for x in range(0, WIDTH, 50):
+            pygame.draw.line(self.screen, (50, 50, 50), (x, 0), (x, HEIGHT), 1)
+        for y in range(0, HEIGHT, 50):
+            pygame.draw.line(self.screen, (50, 50, 50), (0, y), (WIDTH, y), 1)
         
         # Draw stars
         for star in self.stars:
@@ -114,8 +118,8 @@ class PlaneDetectionSimulation:
     def draw_input_screen(self):
         self.draw_sky_background()
         
-        # Title
-        title = self.font.render("Advanced Plane Detection Simulation", True, WHITE)
+        # Title with notebook-style font
+        title = self.font.render("Plane Detection Simulation", True, WHITE)
         self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 50))
         
         # Input fields
@@ -132,20 +136,20 @@ class PlaneDetectionSimulation:
             text_surface = self.font.render(field["value"], True, WHITE)
             self.screen.blit(text_surface, (field["rect"].x + 5, field["rect"].y + 5))
         
-        # Start button
+        # Start button with notebook-inspired style
         start_button = pygame.Rect(WIDTH//2 - 50, 550, 100, 40)
         pygame.draw.rect(self.screen, GREEN, start_button)
         start_text = self.font.render("START", True, WHITE)
         self.screen.blit(start_text, (start_button.x + 25, start_button.y + 10))
         
         return start_button
-    
+
     def draw_satellite(self):
         # More complex satellite design
         sat_x, sat_y = WIDTH // 2, 100
         
         # Main body (central solar panel array)
-        pygame.draw.rect(self.screen, METALLIC_GRAY, (sat_x - 60, sat_y - 10, 120, 20))
+        pygame.draw.rect(self.screen, GRAY, (sat_x - 60, sat_y - 10, 120, 20))
         
         # Radar beam visualization
         beam_width = 5
@@ -247,7 +251,7 @@ class PlaneDetectionSimulation:
         # Check if animation is complete
         if t >= 1:
             self.state = self.STATE_COMPLETE
-    
+
     def run(self):
         start_button = None
         
