@@ -67,59 +67,12 @@ class AircraftDetectionSimulation:
         self.active_input = None
         
         # Shape detection system
-        self.detection_lines = self.create_detection_lines()
         self.shape_points = []
         self.detected_dimensions = {
             'length': 0,
             'width': 0,
             'wingspan': 0
         }
-    
-    def create_detection_lines(self):
-        # Create detection lines that measure different dimensions
-        lines = []
-        # Horizontal lines (for length detection)
-        for y in range(100, HEIGHT-100, 50):
-            lines.append({
-                'id': f"h-{y}",
-                'start': [0, y],
-                'end': [WIDTH, y],
-                'type': 'horizontal',
-                'active': False,
-                'intersections': []
-            })
-        
-        # Vertical lines (for width detection)
-        for x in range(100, WIDTH-100, 50):
-            lines.append({
-                'id': f"v-{x}",
-                'start': [x, 0],
-                'end': [x, HEIGHT],
-                'type': 'vertical',
-                'active': False,
-                'intersections': []
-            })
-        
-        # Diagonal lines (for shape detection)
-        center_x, center_y = WIDTH // 2, HEIGHT // 2
-        for angle in range(0, 180, 30):
-            rad = math.radians(angle)
-            x1 = center_x + 500 * math.cos(rad)
-            y1 = center_y + 500 * math.sin(rad)
-            x2 = center_x - 500 * math.cos(rad)
-            y2 = center_y - 500 * math.sin(rad)
-            
-            lines.append({
-                'id': f"d-{angle}",
-                'start': [x1, y1],
-                'end': [x2, y2],
-                'type': 'diagonal',
-                'angle': angle,
-                'active': False,
-                'intersections': []
-            })
-        
-        return lines
     
     def draw_sky_background(self):
         # Gradient sky background
@@ -172,8 +125,8 @@ class AircraftDetectionSimulation:
         
         return start_button
     
-    def draw_satellite(self, time_offset=0):
-        # Satellite position and animation
+    def draw_satellite(self):
+        # Satellite position - fixed position
         sat_x, sat_y = WIDTH // 2, 80
         
         # Main body and solar panels
@@ -181,67 +134,23 @@ class AircraftDetectionSimulation:
         pygame.draw.rect(self.screen, SILVER, (sat_x - 60, sat_y - 15, 20, 30))
         pygame.draw.rect(self.screen, SILVER, (sat_x + 40, sat_y - 15, 20, 30))
         
-        # Animated radar beams - more subtle
-        beam_angle1 = 25 + math.sin(time_offset) * 10
-        beam_angle2 = -25 + math.sin(time_offset) * 10
+        # Static radar beams
+        beam_angle1 = 25
+        beam_angle2 = -25
         
         beam1_end_x = sat_x + math.tan(math.radians(beam_angle1)) * (HEIGHT - sat_y)
         beam2_end_x = sat_x + math.tan(math.radians(beam_angle2)) * (HEIGHT - sat_y)
         
-        # More subtle beams
+        # Static beams
         beam_color = (255, 0, 0, 40)  # Transparent red
         pygame.draw.line(self.screen, beam_color, (sat_x, sat_y), (beam1_end_x, HEIGHT), 1)
         pygame.draw.line(self.screen, beam_color, (sat_x, sat_y), (beam2_end_x, HEIGHT), 1)
-    
-    def draw_detection_lines(self):
-        # Draw detection lines - less flashy, more subtle
-        # Inactive lines are very faint
-        for line in self.detection_lines:
-            if not line['active']:
-                pygame.draw.line(
-                    self.screen,
-                    (100, 100, 100, 20),  # More transparent
-                    line['start'],
-                    line['end'],
-                    1
-                )
         
-        # Draw active lines - more subtle colors
-        for line in self.detection_lines:
-            if line['active']:
-                # Use more subtle colors for different line types
-                if line['type'] == 'horizontal':
-                    color = (0, 150, 0)  # Darker green for length
-                elif line['type'] == 'vertical':
-                    color = (0, 150, 150)  # Darker cyan for width
-                elif line['type'] == 'diagonal':
-                    color = (150, 150, 0)  # Darker yellow for diagonals
-                
-                pygame.draw.line(
-                    self.screen,
-                    color,
-                    line['start'],
-                    line['end'],
-                    1  # Thinner lines
-                )
-                
-                # Draw intersection points - smaller and less prominent
-                for point in line['intersections']:
-                    pygame.draw.circle(
-                        self.screen,
-                        (150, 0, 0),  # Darker red
-                        point,
-                        2  # Smaller circles
-                    )
-        
-        # Draw all detected shape points - smaller
-        for point in self.shape_points:
-            pygame.draw.circle(
-                self.screen,
-                (150, 0, 0),  # Darker red
-                point,
-                2  # Smaller points
-            )
+        # Add two new vertical beams on either side
+        vertical_beam1_x = sat_x - 150  # Left vertical beam
+        vertical_beam2_x = sat_x + 150  # Right vertical beam
+        pygame.draw.line(self.screen, beam_color, (vertical_beam1_x, HEIGHT), (vertical_beam1_x, sat_y), 1)
+        pygame.draw.line(self.screen, beam_color, (vertical_beam2_x, HEIGHT), (vertical_beam2_x, sat_y), 1)
     
     def draw_plane(self, x, y, angle=0):
         # Plane color based on stealth status
@@ -251,25 +160,8 @@ class AircraftDetectionSimulation:
         body_length = self.plane_length * 2  # Scale factor for visualization
         body_width = self.plane_width * 2
         
-        # Create a more realistic plane shape
-        # Main fuselage points
-        nose = (body_length/2, 0)
-        tail = (-body_length/2, 0)
-        fuselage_top = (0, -body_width/6)
-        fuselage_bottom = (0, body_width/6)
-        
-        # Wings
-        wing_left_inner = (-body_length/6, -body_width/8)
-        wing_left_outer = (-body_length/4, -body_width/2)
-        wing_right_inner = (-body_length/6, body_width/8)
-        wing_right_outer = (-body_length/4, body_width/2)
-        
-        # Tail wings
-        tail_top = (-body_length/2.2, -body_width/5)
-        tail_bottom = (-body_length/2.2, body_width/5)
-        
-        # Vertical stabilizer
-        stabilizer_top = (-body_length/2.5, -body_width/4)
+        # Create a simple plane shape
+        # Simple triangle for the fuselage with rectangle wings
         
         # Rotation matrix
         cos_a = math.cos(math.radians(angle))
@@ -281,150 +173,61 @@ class AircraftDetectionSimulation:
             rotated_y = px * sin_a + py * cos_a + y
             return (rotated_x, rotated_y)
         
-        # Calculate final points
-        fuselage_points = [
-            rotate_point(*nose),
-            rotate_point(*fuselage_top),
-            rotate_point(*tail),
-            rotate_point(*fuselage_bottom)
-        ]
+        # Simple plane shape
+        # Body (triangle)
+        nose = rotate_point(body_length/2, 0)
+        tail_top = rotate_point(-body_length/2, -body_width/4)
+        tail_bottom = rotate_point(-body_length/2, body_width/4)
         
-        left_wing_points = [
-            rotate_point(*wing_left_inner),
-            rotate_point(*wing_left_outer),
-            rotate_point(-body_length/3, -body_width/2),
-            rotate_point(-body_length/5, -body_width/8)
-        ]
+        # Wings (rectangle)
+        wing_left_front = rotate_point(0, -body_width/2)
+        wing_left_back = rotate_point(-body_length/4, -body_width/2)
+        wing_right_front = rotate_point(0, body_width/2)
+        wing_right_back = rotate_point(-body_length/4, body_width/2)
         
-        right_wing_points = [
-            rotate_point(*wing_right_inner),
-            rotate_point(*wing_right_outer),
-            rotate_point(-body_length/3, body_width/2),
-            rotate_point(-body_length/5, body_width/8)
-        ]
+        # Draw body
+        pygame.draw.polygon(self.screen, plane_color, [nose, tail_top, tail_bottom])
         
-        tail_wing_points = [
-            rotate_point(-body_length/2.5, -body_width/15),
-            rotate_point(*tail_top),
-            rotate_point(-body_length/2.5, 0),
-            rotate_point(*tail_bottom),
-            rotate_point(-body_length/2.5, body_width/15)
-        ]
-        
-        vertical_stabilizer_points = [
-            rotate_point(-body_length/2.2, 0),
-            rotate_point(*stabilizer_top),
-            rotate_point(-body_length/2.5, 0)
-        ]
-        
-        # Draw the plane components
-        pygame.draw.polygon(self.screen, plane_color, fuselage_points)  # Fuselage
-        pygame.draw.polygon(self.screen, plane_color, left_wing_points)  # Left wing
-        pygame.draw.polygon(self.screen, plane_color, right_wing_points)  # Right wing
-        pygame.draw.polygon(self.screen, plane_color, tail_wing_points)  # Tail wings
-        pygame.draw.polygon(self.screen, plane_color, vertical_stabilizer_points)  # Vertical stabilizer
-        
-        # Add cockpit (windshield) - slightly darker
-        cockpit_color = (100, 100, 100) if self.is_stealth else (120, 120, 120)
-        cockpit_points = [
-            rotate_point(body_length/3, 0),
-            rotate_point(body_length/6, -body_width/8),
-            rotate_point(body_length/12, -body_width/10),
-            rotate_point(body_length/12, body_width/10)
-        ]
-        pygame.draw.polygon(self.screen, cockpit_color, cockpit_points)
-        
-        # Add engine details for non-stealth aircraft
-        if not self.is_stealth:
-            engine_left_pos = rotate_point(-body_length/6, -body_width/4)
-            engine_right_pos = rotate_point(-body_length/6, body_width/4)
-            engine_size = max(body_width/10, 5)
-            
-            pygame.draw.circle(self.screen, (100, 100, 100), engine_left_pos, engine_size)
-            pygame.draw.circle(self.screen, (100, 100, 100), engine_right_pos, engine_size)
+        # Draw wings
+        pygame.draw.polygon(self.screen, plane_color, 
+                          [wing_left_front, wing_left_back,
+                           wing_right_back, wing_right_front])
         
         # Store all points for collision detection
-        self.plane_points = (fuselage_points + left_wing_points + 
-                            right_wing_points + tail_wing_points + 
-                            vertical_stabilizer_points)
+        self.plane_points = [nose, tail_top, tail_bottom, 
+                            wing_left_front, wing_left_back,
+                            wing_right_front, wing_right_back]
     
     def update_detection(self):
-        # Reset all lines
-        for line in self.detection_lines:
-            line['active'] = False
-            line['intersections'] = []
-        
+        # Reset detection data
         self.shape_points = []
         
         # Get plane corners
         if not hasattr(self, 'plane_points'):
             return
         
-        # For each line, check intersections with plane edges
-        for line in self.detection_lines:
-            line_start_x, line_start_y = line['start']
-            line_end_x, line_end_y = line['end']
+        # Simple shape detection - just store key points of the aircraft
+        for point in self.plane_points:
+            # Add detection probability calculation for stealth aircraft
+            detection_probability = 0.3 if self.is_stealth else 0.9  # Lower detection for stealth
+            if random.random() < detection_probability:
+                self.shape_points.append(point)
+        
+        # Calculate basic dimensions based on detected points
+        if self.shape_points:
+            # Find extreme coordinates
+            min_x = min(p[0] for p in self.shape_points)
+            max_x = max(p[0] for p in self.shape_points)
+            min_y = min(p[1] for p in self.shape_points)
+            max_y = max(p[1] for p in self.shape_points)
             
-            # Check intersections with each plane edge
-            intersections = []
-            
-            for i in range(len(self.plane_points)):
-                p1 = self.plane_points[i]
-                p2 = self.plane_points[(i + 1) % len(self.plane_points)]
-                
-                # Line segment intersection algorithm
-                x1, y1 = line_start_x, line_start_y
-                x2, y2 = line_end_x, line_end_y
-                x3, y3 = p1
-                x4, y4 = p2
-                
-                # Calculate denominator
-                den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
-                
-                if den != 0:
-                    t = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / den
-                    u = -((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / den
-                    
-                    if 0 <= t <= 1 and 0 <= u <= 1:
-                        # Intersection point
-                        px = x1 + t * (x2 - x1)
-                        py = y1 + t * (y2 - y1)
-                        
-                        # Add detection probability calculation for stealth aircraft
-                        detection_probability = 0.3 if self.is_stealth else 0.9  # Lower detection for stealth
-                        if random.random() < detection_probability:
-                            intersections.append((px, py))
-                            self.shape_points.append((px, py))
-            
-            # If we found intersections, activate the line
-            if intersections:
-                line['active'] = True
-                line['intersections'] = intersections
-                
-                # Calculate dimensions
-                if line['type'] == 'horizontal' and len(intersections) >= 2:
-                    # Find maximum distance between points (length)
-                    max_dist = 0
-                    for p1 in intersections:
-                        for p2 in intersections:
-                            dist = math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
-                            max_dist = max(max_dist, dist)
-                    self.detected_dimensions['length'] = max_dist / 2  # Scale back to real units
-                
-                elif line['type'] == 'vertical' and len(intersections) >= 2:
-                    # Find maximum distance between points (width)
-                    max_dist = 0
-                    for p1 in intersections:
-                        for p2 in intersections:
-                            dist = math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
-                            max_dist = max(max_dist, dist)
-                    self.detected_dimensions['width'] = max_dist / 2  # Scale back to real units
+            # Set detected dimensions
+            self.detected_dimensions['length'] = (max_x - min_x) / 2  # Scale back to real units
+            self.detected_dimensions['width'] = (max_y - min_y) / 2
     
     def get_shape_classification(self):
         # Analyze detected points to classify aircraft shape
-        active_lines = len([line for line in self.detection_lines if line['active']])
-        
-        if active_lines < 3:
+        if len(self.shape_points) < 3:
             return "Unknown (insufficient data)"
         
         # Calculate aspect ratio
@@ -485,9 +288,6 @@ class AircraftDetectionSimulation:
         title = self.title_font.render("Shape Detection Results", True, WHITE)
         self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 160))
         
-        # Active detection lines count
-        active_lines = len([line for line in self.detection_lines if line['active']])
-        
         # Result data
         results = [
             f"Actual Plane Length: {self.plane_length:.2f} m",
@@ -495,11 +295,10 @@ class AircraftDetectionSimulation:
             f"Detected Length: {self.detected_dimensions['length']:.2f} m",
             f"Detected Width: {self.detected_dimensions['width']:.2f} m",
             f"Detection Accuracy: {self.get_detection_accuracy():.1f}%",
-            f"Active Detection Lines: {active_lines}/{len(self.detection_lines)}",
             f"Shape Points Detected: {len(self.shape_points)}",
             f"Aircraft Classification: {self.get_shape_classification()}",
             f"Stealth Status: {'Stealth' if self.is_stealth else 'Conventional'}",
-            f"Detection Quality: {self.get_detection_quality(active_lines)}"
+            f"Detection Quality: {self.get_detection_quality()}"
         ]
         
         for i, result in enumerate(results):
@@ -527,15 +326,15 @@ class AircraftDetectionSimulation:
         
         return (length_accuracy + width_accuracy) / 2
     
-    def get_detection_quality(self, active_lines_count):
-        total_lines = len(self.detection_lines)
-        ratio = active_lines_count / total_lines
+    def get_detection_quality(self):
+        # Based on number of detected points relative to total plane points
+        detected_ratio = len(self.shape_points) / len(self.plane_points) if hasattr(self, 'plane_points') else 0
         
-        if ratio >= 0.5:
+        if detected_ratio >= 0.8:
             return "Excellent"
-        elif ratio >= 0.3:
+        elif detected_ratio >= 0.5:
             return "Good"
-        elif ratio >= 0.15:
+        elif detected_ratio >= 0.3:
             return "Fair"
         else:
             return "Poor"
@@ -608,28 +407,24 @@ class AircraftDetectionSimulation:
                 start_button = self.draw_input_screen()
             else:
                 self.draw_sky_background()
-                self.draw_satellite(time.time())
-                self.draw_detection_lines()
+                self.draw_satellite()
                 
                 # Animation logic
                 if self.state == self.STATE_RUNNING:
                     self.update_animation()
                     self.draw_plane(self.plane_x, self.plane_y, self.plane_angle)
                     
-                    # Show realtime stats - more subtle
-                    active_lines = len([line for line in self.detection_lines if line['active']])
+                    # Show realtime stats
                     time_text = self.font.render(f"Time: {self.elapsed_time:.1f}s", True, WHITE)
-                    detect_text = self.font.render(f"Active Lines: {active_lines}", True, WHITE)
                     shape_text = self.font.render(f"Shape Points: {len(self.shape_points)}", True, WHITE)
                     
                     # Add semi-transparent background for text readability
-                    text_bg = pygame.Surface((180, 100), pygame.SRCALPHA)
+                    text_bg = pygame.Surface((180, 70), pygame.SRCALPHA)
                     text_bg.fill((0, 0, 0, 100))
                     self.screen.blit(text_bg, (10, 10))
                     
                     self.screen.blit(time_text, (20, 20))
-                    self.screen.blit(detect_text, (20, 50))
-                    self.screen.blit(shape_text, (20, 80))
+                    self.screen.blit(shape_text, (20, 50))
                 
                 if self.state == self.STATE_COMPLETE:
                     self.draw_plane(self.plane_x, self.plane_y, self.plane_angle)
