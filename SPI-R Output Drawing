@@ -66,6 +66,19 @@ class AircraftDetectionSimulation:
        self.alt_plane_y = HEIGHT // 2
        self.alt_detection_points = []
 
+    
+       # Ground station parameters for alt simulation
+       self.ground_station_width = -1000
+       self.ground_station_height = 150
+       self.ground_station_x = WIDTH // 2 - 125
+       self.ground_station_y = HEIGHT - 120
+       self.detector_radius = 4
+       self.detector1_x = self.ground_station_x + 50
+       self.detector1_y = self.ground_station_y + 40
+       self.detector2_x = self.ground_station_x + 200
+       self.detector2_y = self.ground_station_y + 40
+       self.detection_events = []  # For storing ground detector events
+       self.beam_connections = []  # For storing beam connections to ground
 
    def create_detection_lines(self):
        lines = []
@@ -353,10 +366,62 @@ class AircraftDetectionSimulation:
        pygame.draw.circle(self.screen, (0, 255, 0), vertical_beam_left, 4)
        pygame.draw.circle(self.screen, (0, 255, 0), vertical_beam_right, 4)
        
+       # Draw ground station
+       self.update_ground_station()
+       
+       # Add ground station details
+       ground_title = self.font.render("Ground Station", True, BLACK)
+       self.screen.blit(ground_title, (self.ground_station_x - 130, self.ground_station_y + 50))
+
+       # Draw detectors on ground station
+       detector1_pos = (self.detector1_x, self.detector1_y)
+       detector2_pos = (self.detector2_x, self.detector2_y)
+       pygame.draw.circle(self.screen, (255, 200, 0), detector1_pos, self.detector_radius)
+       pygame.draw.circle(self.screen, (255, 200, 0), detector2_pos, self.detector_radius)
+
+       # Label the detectors
+       detector1_label = self.font.render("Detector 1", True, WHITE)
+       detector2_label = self.font.render("Detector 2", True, WHITE)
+       self.screen.blit(detector1_label, (self.detector1_x - 30, self.detector1_y + 15))
+       self.screen.blit(detector2_label, (self.detector2_x - 30, self.detector2_y + 15))
+
+       # Calculate beam splitter position (in the middle between detectors)
+       splitter_x = (self.detector1_x + self.detector2_x) // 2
+       splitter_y = self.detector1_y - 40  # Above the detectors
+       
+       # Draw beam splitter
+       splitter_width = 30
+       splitter_height = 15
+       pygame.draw.rect(self.screen, (180, 180, 220), 
+                       (splitter_x - splitter_width//2, splitter_y - splitter_height//2, 
+                        splitter_width, splitter_height))
+       
+       
+       
+       
+      
+       # Draw detection events (photon hits on detectors)
+       detection_events_to_keep = []
+       for event in self.detection_events:
+            # Keep events for 1.5 seconds
+            age = elapsed_time - event['time']
+            if age < 1.5:
+                pulse_size = 10 + int(5 * math.sin(age * 8))  # Pulsing effect
+                pulse_alpha = 255 - int(170 * age/1.5)  # Fade out
+
+                # Draw pulsing circle at detector
+                #pygame.draw.circle(self.screen, (255, 255, 255, pulse_alpha), 
+                          #event['pos'], pulse_size, 2)
+                
+                # Add to list of events to keep
+                detection_events_to_keep.append(event)
+            
+       self.detection_events = detection_events_to_keep
+
        # Update plane position for animation (moving from left to right)
        plane_speed = 200  # Pixels per second
        self.alt_plane_x = -100 + (elapsed_time * plane_speed)
-       
+
        # Reset plane position if it goes off screen
        if self.alt_plane_x > WIDTH + 100:
            self.alt_plane_x = -100
@@ -470,6 +535,19 @@ class AircraftDetectionSimulation:
                                'time': elapsed_time,
                                'color': (255, 0, 0, 255)
                            })
+                           
+                           # Also add a detection event to the detectors with some probability
+                           if random.random() < (0.3 if self.is_stealth else 0.7):
+                               # Choose one of the detectors randomly
+                               detector_choice = random.randint(1, 2)
+                               detector_pos = detector1_pos if detector_choice == 1 else detector2_pos
+                               
+                               # Add to detection events
+                               self.detection_events.append({
+                                   'pos': detector_pos,
+                                   'time': elapsed_time + random.uniform(0.1, 0.3),  # Slight delay
+                                   'detector': detector_choice
+                               })
        
        # Update and draw detection points
        points_to_keep = []
@@ -493,26 +571,23 @@ class AircraftDetectionSimulation:
            f"Detected Locations: {len(self.alt_detection_points)}"
        ]
        
-       # Draw panel background for parameters
-       panel_width = 300
-       panel_height = len(param_text) * 30 + 20
-       panel_x = WIDTH // 2 - panel_width // 2
-       panel_y = HEIGHT - panel_height - 20
+       # Add ground detection info to param_text
+       param_text.append(f"Ground Detections: {len(self.detection_events)}")
+
+       # Also add detection percentages based on stealth status
+       ground_detect_chance = "25-40%" if self.is_stealth else "70-90%"
+       param_text.append(f"Ground Detection Rate: {ground_detect_chance}")
        
-       pygame.draw.rect(self.screen, (0, 0, 0, 180), (panel_x, panel_y, panel_width, panel_height))
-       pygame.draw.rect(self.screen, WHITE, (panel_x, panel_y, panel_width, panel_height), 1)
-       
-       # Draw white text with parameters
-       text_y = panel_y + 15
-       for i, text in enumerate(param_text):
-           rendered = self.font.render(text, True, WHITE)
-           text_x = WIDTH // 2 - rendered.get_width() // 2
-           self.screen.blit(rendered, (text_x, text_y + i * 30))
+       # Display parameter text
+       y_offset = 20
+       for text in param_text:
+           text_surface = self.font.render(text, True, WHITE)
+           self.screen.blit(text_surface, (10, y_offset))
+           y_offset += 25
        
        # Check if animation is complete
        if elapsed_time >= 10:  # Extended time for this simulation
            self.state = self.STATE_COMPLETE
-
 
    def get_shape_classification(self):
        if len([line for line in self.detection_lines if line['active']]) < 3:
@@ -614,7 +689,128 @@ class AircraftDetectionSimulation:
       
        return main_sim_button, alt_sim_button
 
+   def update_ground_station(self):
+        # Draw ground station base
+    ground_station_width = 250
+    ground_station_height = 150
+    self.ground_station_x = WIDTH // 2 - 125
+    self.ground_station_y = HEIGHT - 120
+    ground_station_rect = pygame.Rect(self.ground_station_x, self.ground_station_y, 
+                             ground_station_width, ground_station_height)
+    pygame.draw.rect(self.screen, GREEN, ground_station_rect)
+    pygame.draw.rect(self.screen, (50, 50, 50), ground_station_rect, 2)
 
+    # Base detector positions
+    detector1_x = self.ground_station_x + 50
+    detector1_y = self.ground_station_y + 70
+    detector2_x = self.ground_station_x + 200
+    detector2_y = self.ground_station_y + 70
+    self.detector1_x, self.detector1_y = detector1_x, detector1_y
+    self.detector2_x, self.detector2_y = detector2_x, detector2_y
+    
+    # Draw horizontal line connecting equipment (purple line in image)
+    pygame.draw.line(self.screen, (100, 0, 150), 
+                    (detector1_x - 20, detector1_y - 30), 
+                    (detector2_x + 20, detector2_y - 30), 3)
+    
+    # Draw beam splitter in center
+    splitter_x = (detector1_x + detector2_x) // 2
+    splitter_y = detector1_y - 40
+    splitter_size = 20
+    pygame.draw.rect(self.screen, (70, 0, 100), 
+                    (splitter_x - splitter_size//2, splitter_y - splitter_size//2, 
+                     splitter_size, splitter_size))
+    #splitter_label = self.font.render("Beam splitter", True, WHITE)
+    #self.screen.blit(splitter_label, (splitter_x - 45, splitter_y - splitter_size - 20))
+    
+    # Draw mirrors - repositioned to match your diagram
+    mirror1_x = detector1_x + 30
+    mirror1_y = detector1_y - 60
+    mirror2_x = detector2_x - 30
+    mirror2_y = detector2_y - 60
+    
+    # Mirror 1 (angled line)
+    pygame.draw.line(self.screen, (100, 0, 150), 
+                    (mirror1_x - 15, mirror1_y + 15), 
+                    (mirror1_x + 15, mirror1_y - 15), 3)
+    mirror1_label = self.font.render("mirror 1", True, (100, 0, 150))
+    self.screen.blit(mirror1_label, (mirror1_x - 30, mirror1_y - 40))
+    
+    # Mirror 2 (angled line)
+    pygame.draw.line(self.screen, (100, 0, 150), 
+                    (mirror2_x - 15, mirror2_y - 15), 
+                    (mirror2_x + 15, mirror2_y + 15), 3)
+    mirror2_label = self.font.render("mirror 2", True, (100, 0, 150))
+    self.screen.blit(mirror2_label, (mirror2_x - 30, mirror2_y - 40))
+    
+    # Draw dashed lines showing beam paths from splitter to mirrors
+    for i in range(0, 60, 5):
+        # Dashed line to mirror 1
+        start_x = splitter_x - i//5
+        start_y = splitter_y + i//5
+        pygame.draw.line(self.screen, (100, 0, 150), 
+                       (start_x, start_y), 
+                       (start_x-2, start_y+2), 2)
+        
+        # Dashed line to mirror 2
+        start_x = splitter_x + i//5
+        start_y = splitter_y + i//5
+        pygame.draw.line(self.screen, (100, 0, 150), 
+                       (start_x, start_y), 
+                       (start_x+2, start_y+2), 2)
+    
+    # Draw dashed lines from mirrors to detectors
+    for i in range(0, 40, 5):
+        # Dashed line from mirror 1 to detector 1
+        start_x = mirror1_x - i//4
+        start_y = mirror1_y + i//2
+        pygame.draw.line(self.screen, (100, 0, 150), 
+                       (start_x, start_y), 
+                       (start_x-2, start_y+2), 2)
+        
+        # Dashed line from mirror 2 to detector 2
+        start_x = mirror2_x + i//4
+        start_y = mirror2_y + i//2
+        pygame.draw.line(self.screen, (100, 0, 150), 
+                       (start_x, start_y), 
+                       (start_x+2, start_y+2), 2)
+    
+    # Draw detectors
+    detector_radius = 8
+    pygame.draw.circle(self.screen, (255, 200, 0), (detector1_x, detector1_y), detector_radius)
+    pygame.draw.circle(self.screen, (255, 200, 0), (detector2_x, detector2_y), detector_radius)
+
+    # Label the detectors
+    #detector1_label = self.font.render("Detector 1", True, BLACK)
+    #detector2_label = self.font.render("Detector 2", True, BLACK)
+    #self.screen.blit(detector1_label, (detector1_x - 35, detector1_y + 15))
+    #self.screen.blit(detector2_label, (detector2_x - 35, detector2_y + 15))
+    
+    # Process detection events
+    detection_events_to_keep = []
+    for event in self.detection_events:
+        # Keep events for 1.5 seconds
+        age = self.elapsed_time - event['time']
+        if age < 1.5:
+            pulse_size = 10 + int(5 * math.sin(age * 8))  # Pulsing effect
+            pulse_alpha = 255 - int(170 * age/1.5)  # Fade out
+
+            # Draw pulsing circle at detector
+            pygame.draw.circle(self.screen, (255, 255, 0), 
+                      event['pos'], pulse_size, 2)
+            
+            # Add to list of events to keep
+            detection_events_to_keep.append(event)
+
+            # Draw signal text
+            if event['detector'] == 1:
+                 sig_text = self.font.render("Signal!", True, (255, 255, 0))
+                 self.screen.blit(sig_text, (self.detector1_x - 20, self.detector1_y - 25))
+            else:
+                sig_text = self.font.render("Signal!", True, (255, 255, 0))
+                self.screen.blit(sig_text, (self.detector2_x - 20, self.detector2_y - 25))
+        
+    self.detection_events = detection_events_to_keep
    def run(self):
        main_sim_button = None
        alt_sim_button = None
