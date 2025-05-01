@@ -289,6 +289,7 @@ class AircraftDetectionSimulation:
            self.state = self.STATE_COMPLETE
 
 
+
    def run_alternate_simulation(self):
        """
        Alternative simulation that visualizes beam detection with vertical beams 
@@ -296,7 +297,6 @@ class AircraftDetectionSimulation:
        """
        elapsed_time = time.time() - self.start_time
        self.elapsed_time = elapsed_time
-       
        
        # Calculate values based on plane parameters
        plane_velocity = self.plane_length * 1.8  # Speed calculation for display
@@ -352,6 +352,11 @@ class AircraftDetectionSimulation:
        pygame.draw.line(self.screen, beam_color, (left_emitter_x, emitter_y), (self.mirror1_x, self.mirror1_y), 2)
        pygame.draw.line(self.screen, beam_color, (right_emitter_x, emitter_y), (self.mirror2_x, self.mirror2_y), 2)
 
+       # Draw the new triangle beams from the center emitter to the mirrors
+       pygame.draw.line(self.screen, beam_color, (center_emitter_x, emitter_y), (self.mirror1_x, self.mirror1_y), 2)
+       pygame.draw.line(self.screen, beam_color, (center_emitter_x, emitter_y), (self.mirror2_x, self.mirror2_y), 2)
+
+
        # Draw beams from mirrors to beam splitter
        pygame.draw.line(self.screen, beam_color, (self.mirror1_x, self.mirror1_y), (self.splitter_x, self.splitter_y), 2)
        pygame.draw.line(self.screen, beam_color, (self.mirror2_x, self.mirror2_y), (self.splitter_x, self.splitter_y), 2)
@@ -359,6 +364,7 @@ class AircraftDetectionSimulation:
        # Draw emitter points on the satellite
        pygame.draw.circle(self.screen, (0, 255, 0), (left_emitter_x, emitter_y), 4)
        pygame.draw.circle(self.screen, (0, 255, 0), (right_emitter_x, emitter_y), 4)
+       pygame.draw.circle(self.screen, (0, 255, 0), (center_emitter_x, emitter_y), 4) # Draw center emitter point
 
 
        # Add ground station details
@@ -489,7 +495,10 @@ class AircraftDetectionSimulation:
            ((left_emitter_x, emitter_y), (self.mirror1_x, self.mirror1_y)),
            ((self.mirror1_x, self.mirror1_y), (self.splitter_x, self.splitter_y)),
            ((right_emitter_x, emitter_y), (self.mirror2_x, self.mirror2_y)),
-           ((self.mirror2_x, self.mirror2_y), (self.splitter_x, self.splitter_y))
+           ((self.mirror2_x, self.mirror2_y), (self.splitter_x, self.splitter_y)),
+           # Add the new triangle beam lines for collision detection
+           ((center_emitter_x, emitter_y), (self.mirror1_x, self.mirror1_y)),
+           ((center_emitter_x, emitter_y), (self.mirror2_x, self.mirror2_y))
        ]
 
        # Check for new detection points
