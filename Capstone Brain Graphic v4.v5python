@@ -1,1 +1,499 @@
-{"mode":"Text","hardwareTarget":"brain","textContent":"#region VEXcode Generated Robot Configuration\nfrom vex import *\nimport urandom\n\n# Brain should be defined by default\nbrain=Brain()\n\n# Robot configuration code\noptical_1 = Optical(Ports.PORT1)\noptical_2 = Optical(Ports.PORT2)\noptical_3 = Optical(Ports.PORT3)\noptical_4 = Optical(Ports.PORT4)\noptical_5 = Optical(Ports.PORT5)\noptical_6 = Optical(Ports.PORT6)\n\n\n# wait for rotation sensor to fully initialize\nwait(30, MSEC)\n\n\n# Make random actually random\ndef initializeRandomSeed():\n    wait(100, MSEC)\n    random = brain.battery.voltage(MV) + brain.battery.current(CurrentUnits.AMP) * 100 + brain.timer.system_high_res()\n    urandom.seed(int(random))\n      \n# Set random seed \ninitializeRandomSeed()\n\n\ndef play_vexcode_sound(sound_name):\n    # Helper to make playing sounds from the V5 in VEXcode easier and\n    # keeps the code cleaner by making it clear what is happening.\n    print(\"VEXPlaySound:\" + sound_name)\n    wait(5, MSEC)\n\n# add a small delay to make sure we don't print in the middle of the REPL header\nwait(200, MSEC)\n# clear the console to make sure we don't have the REPL in the console\nprint(\"\\033[2J\")\n\n#endregion VEXcode Generated Robot Configuration\n\n# ------------------------------------------\n# \n# \tProject:      Castone Physical Model\n#\tAuthor:       Riley Ashok\n#\tCreated:      April 26, 2025\n#\tDescription:  VEXcode V5 Python Project\n# \n# ------------------------------------------\n\n# Library imports\nfrom vex import *\n\n# Begin project code\n\nimport vex\n\n# \n\n\n# Initialize Brain and Optical Sensor\n#brain = vex.Brain()\n#optical_sensor = vex.Optical(brain.three_wire_port.a)  # Connect to a three-wire port\n\nbrain.screen.print(\"I work2\")\nprint(\"I work3\")\n\n#initialize variables\nhue = 0\ntimeRight1 = 0.0\ntimeRight2 = 0.0\ntimeRight3 = 0.0\ntimeRight4 = 0.0\ntimeRight5 = 0.0\ntimeRight6 = 0.0\n\ntimeLeft1 = 0.0\ntimeLeft2 = 0.0\ntimeLeft3 = 0.0\ntimeLeft4 = 0.0\ntimeLeft5 = 0.0\ntimeLeft6 = 0.0\n\nplaneLength1 = 0.0\nplaneLength2 = 0.0\nplaneLength3 = 0.0\nplaneLength4 = 0.0\nplaneLength5 = 0.0\nplaneLength6 = 0.0\n\n\n\n# Functions using optical sensor 1 to get times\ndef detect_timeRight1():\n    #brain.screen.print(\"Waiting for red detection...\")\n    \n    while True:\n        hue1 = optical_1.hue()  # Get color hue\n\n        # Check if hue corresponds to red (typically between 0-60 degrees)\n        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED\n            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds\n            #brain.screen.clear_screen()\n            #brain.screen.print(f\"Red detected at: {detected_time:.2f} seconds\")\n        \n            break  # Stop loop once red is detected\n        \n        return timeRight1\n        vex.wait(50)  # Small delay to reduce CPU usage\n\ndef detect_timeLeft1():\n\n    while True:\n        hue11 = optical_1.hue() # Get hue color\n\n        # Check whether hue is not red\n        if 60 <= hue <= 360: #FIND VALUES OF NO RED\n            \n            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds\n\n            break\n\n        return timeLeft1\n        vex.wait(50)\n\n# Functions using optical sensor 2 to get times\ndef detect_timeRight2():\n    #brain.screen.print(\"Waiting for red detection...\")\n    \n    while True:\n        hue2 = optical_2.hue()  # Get color hue\n\n        # Check if hue corresponds to red (typically between 0-60 degrees)\n        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED\n            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds\n            #brain.screen.clear_screen()\n            #brain.screen.print(f\"Red detected at: {detected_time:.2f} seconds\")\n            break  # Stop loop once red is detected\n        \n        return timeRight2\n        vex.wait(50)  # Small delay to reduce CPU usage\n\ndef detect_timeLeft2():\n\n    while True:\n        hue22 = optical_2.hue() # Get hue color\n\n        # Check whether hue is not red\n        if 60 <= hue <= 360: #FIND VALUES OF NO RED\n            \n            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds\n\n            break\n\n        return timeLeft2\n        vex.wait(50)\n\n# Functions using optical sensor 3 to get times\ndef detect_timeRight3():\n    #brain.screen.print(\"Waiting for red detection...\")\n    \n    while True:\n        hue3 = optical_3.hue()  # Get color hue\n\n        # Check if hue corresponds to red (typically between 0-60 degrees)\n        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED\n            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds\n            #brain.screen.clear_screen()\n            #brain.screen.print(f\"Red detected at: {detected_time:.2f} seconds\")\n            break  # Stop loop once red is detected\n        \n        return timeRight3\n        vex.wait(50)  # Small delay to reduce CPU usage\n\ndef detect_timeLeft3():\n\n    while True:\n        hue33 = optical_3.hue() # Get hue color\n\n        # Check whether hue is not red\n        if 60 <= hue <= 360: #FIND VALUES OF NO RED\n            \n            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds\n\n            break\n\n        return timeLeft3\n        vex.wait(50)\n\n# Functions using optical sensor 4 to get times\ndef detect_timeRight4():\n    #brain.screen.print(\"Waiting for red detection...\")\n    \n    while True:\n        hue4 = optical_4.hue()  # Get color hue\n\n        # Check if hue corresponds to red (typically between 0-60 degrees)\n        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED\n            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds\n            #brain.screen.clear_screen()\n            #brain.screen.print(f\"Red detected at: {detected_time:.2f} seconds\")\n            break  # Stop loop once red is detected\n        \n        return timeRight4\n        vex.wait(50)  # Small delay to reduce CPU usage\n\ndef detect_timeLeft4():\n\n    while True:\n        hue44 = optical_4.hue() # Get hue color\n\n        # Check whether hue is not red\n        if 60 <= hue <= 360: #FIND VALUES OF NO RED\n            \n            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds\n\n            break\n\n        return timeLeft4\n        vex.wait(50)\n\n\n# Functions using optical sensor 5 to get times\ndef detect_timeRight5():\n    #brain.screen.print(\"Waiting for red detection...\")\n    \n    while True:\n        hue5 = optical_5.hue()  # Get color hue\n\n        # Check if hue corresponds to red (typically between 0-60 degrees)\n        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED\n            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds\n            #brain.screen.clear_screen()\n            #brain.screen.print(f\"Red detected at: {detected_time:.2f} seconds\")\n            break  # Stop loop once red is detected\n        \n        return timeRight5\n        vex.wait(50)  # Small delay to reduce CPU usage\n\ndef detect_timeLeft5():\n\n    while True:\n        hue55 = optical_5.hue() # Get hue color\n\n        # Check whether hue is not red\n        if 60 <= hue <= 360: #FIND VALUES OF NO RED\n            \n            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds\n\n            break\n\n        return timeLeft5\n        vex.wait(50)\n\n# Functions using optical sensor 6 to get times\ndef detect_timeRight6():\n    #brain.screen.print(\"Waiting for red detection...\")\n    \n    while True:\n        hue1 = optical_6.hue()  # Get color hue\n\n        # Check if hue corresponds to red (typically between 0-60 degrees)\n        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED\n            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds\n            #brain.screen.clear_screen()\n            #brain.screen.print(f\"Red detected at: {detected_time:.2f} seconds\")\n            break  # Stop loop once red is detected\n        \n        return timeRight6\n        vex.wait(50)  # Small delay to reduce CPU usage\n\ndef detect_timeLeft6():\n\n    while True:\n        hue66 = optical_6.hue() # Get hue color\n\n        # Check whether hue is not red\n        if 60 <= hue <= 360: #FIND VALUES OF NO RED\n            \n            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds\n\n            break\n\n        return timeLeft6\n        vex.wait(50)\n\n\n# Run detection function 1\ndetect_timeRight1() #get time1\ndetect_timeLeft1() #get time11\n\n# Run detection function 2\ndetect_timeRight2() #get time2\ndetect_timeLeft2() #get time22\n\n# Run detection function 3\ndetect_timeRight3() #get time3\ndetect_timeLeft3() #get time33\n\n# Run detection function 4\ndetect_timeRight4() #get time4\ndetect_timeLeft4() #get time44\n\n# Run detection function 5\ndetect_timeRight5() #get time5\ndetect_timeLeft5() #get time55\n\n# Run detection function 6\ndetect_timeRight6() #get time6\ndetect_timeLeft6() #get time66\n\n\n#define some variables\nbeamDistance = 0.26 #meters\n\ntimeSilent1 = timeLeft1 - timeRight1\ntimeSilent2 = timeLeft2 - timeRight2\ntimeSilent3 = timeLeft3 - timeRight3\ntimeSilent4 = timeLeft4 - timeRight4\ntimeSilent5 = timeLeft5 - timeRight5\ntimeSilent6 = timeLeft6 - timeRight6\n\n#Find plane lengths\ndef find_length1(timeSilent1, timeRight1):\n    #MATH EQUATIONS\n    #d = ((ts/tr)+1)d\n    #d = ((parenthesis1)+1)d\n    #d = (parenthesis2)d\n\n    #MATH CODED\n    parenthesis1 = timeSilent1/timeRight1\n    parenthesis2 = parenthesis1 + 1\n    planeLength = parenthesis2 * beamDistance\n    \n    #PRINT STATEMENTS\n    #print(f\"The length of the plane is: {planeLength} meters\")\n\n    #RETURN STATEMENTS\n    return planeLength1\n\n\ndef find_length2(timeSilent2, timeRight2):\n    #MATH EQUATIONS\n    #d = ((ts/tr)+1)d\n    #d = ((parenthesis1)+1)d\n    #d = (parenthesis2)d\n\n    #MATH CODED\n    parenthesis1 = timeSilent2/timeRight2\n    parenthesis2 = parenthesis1 + 1\n    planeLength = parenthesis2 * beamDistance\n    \n    #PRINT STATEMENTS\n    #print(f\"The length of the plane is: {planeLength} meters\")\n\n    #RETURN STATEMENTS\n    return planeLength2\n\n\ndef find_length3(timeSilent3, timeRight3):\n    #MATH EQUATIONS\n    #d = ((ts/tr)+1)d\n    #d = ((parenthesis1)+1)d\n    #d = (parenthesis2)d\n\n    #MATH CODED\n    parenthesis1 = timeSilent3/timeRight3\n    parenthesis2 = parenthesis1 + 1\n    planeLength = parenthesis2 * beamDistance\n    \n    #PRINT STATEMENTS\n    #print(f\"The length of the plane is: {planeLength} meters\")\n\n    #RETURN STATEMENTS\n    return planeLength3\n\n\n\ndef find_length4(timeSilent4, timeRight4):\n    #MATH EQUATIONS\n    #d = ((ts/tr)+1)d\n    #d = ((parenthesis1)+1)d\n    #d = (parenthesis2)d\n\n    #MATH CODED\n    parenthesis1 = timeSilent4/timeRight4\n    parenthesis2 = parenthesis1 + 1\n    planeLength = parenthesis2 * beamDistance\n    \n    #PRINT STATEMENTS\n    #print(f\"The length of the plane is: {planeLength} meters\")\n\n    #RETURN STATEMENTS\n    return planeLength4\n\n\ndef find_length5(timeSilent5, timeRight5):\n    #MATH EQUATIONS\n    #d = ((ts/tr)+1)d\n    #d = ((parenthesis1)+1)d\n    #d = (parenthesis2)d\n\n    #MATH CODED\n    parenthesis1 = timeSilent5/timeRight5\n    parenthesis2 = parenthesis1 + 1\n    planeLength = parenthesis2 * beamDistance\n    \n    #PRINT STATEMENTS\n    #print(f\"The length of the plane is: {planeLength} meters\")\n\n    #RETURN STATEMENTS\n    return planeLength5\n\n\ndef find_length6(timeSilent6, timeRight6):\n    #MATH EQUATIONS\n    #d = ((ts/tr)+1)d\n    #d = ((parenthesis1)+1)d\n    #d = (parenthesis2)d\n\n    #MATH CODED\n    parenthesis1 = timeSilent6/timeRight6\n    parenthesis2 = parenthesis1 + 1\n    planeLength = parenthesis2 * beamDistance\n    \n    #PRINT STATEMENTS\n    #print(f\"The length of the plane is: {planeLength} meters\")\n\n    #RETURN STATEMENTS\n    return planeLength6\n\n#Velocity function, only using Right1 because I'm lazy and whats the difference\ndef find_velocity(timeRight1):\n    #MATH EQUATIONS\n    #v = d/tr\n\n    #MATH CODED\n    planeVelocity = beamDistance / timeRight1\n\n    #PRINT STATEMENTS\n    #print(f\"The velocity of the plane is: {planeVelocity} m/s\")\n    #print(f\"----------------------------------\")\n    #print(f\" \")\n\n    #RETURN STATEMENT\n    return planeVelocity\n\n#altitude function, only using Left1 because again, why not\ndef find_altitude(timeLeft1):\n    #MATH EQUATIONS\n    #(h0/h2) = (w0/d1)\n    #h2 = (h0*d1)/w0\n    #d1 = v(t2-t1)\n    #d1 = (D/tr)(t2-t1)\n\n    #MATH CODED\n    d1 = find_velocity(timeRight1) * (t2 - t1)\n    heightPlane = (heightInitial * d1) / halfBeamDistance\n\n    #PRINT STATEMENTS\n    #print(f\"The distance between the cylinder and cone beams is: {d1} m\")\n    #print(f\"The altitude of the plane is: {heightPlane} m\")\n\n    #RETURN STATEMENT\n    return heightPlane\n\n\n#graphics math\n\ny1 = planeLength1 * sin(0)\nx1 = planeLength1 * cos(0)\n\ny2 = planeLength2 * sin(60)\nx2 = planeLength2 * cos(60)\n\ny3 = planeLength3 * sin(120)\nx3 = planeLength3 * cos(120)\n\ny4 = planeLength4 * sin(180)\nx4 = planeLength4 * cos(180)\n\ny5 = planeLength5 * sin(240)\nx5 = planeLength5 * cos(240)\n\ny6 = planeLength6 * sin(300)\nx6 = planeLength6 * cos(300)\n\n#Graphics\nbrain.screen.print(\"I got to graphics\")\nbrain.screen.draw_line(0, 0, x1, y1)\nbrain.screen.draw_line(0, 0, x2, y2)\nbrain.screen.draw_line(0, 0, x3, y3)\nbrain.screen.draw_line(0, 0, x4, y4)\nbrain.screen.draw_line(0, 0, x5, y5)\nbrain.screen.draw_line(0, 0, x6, y6)\n\n\n","textLanguage":"python","robotConfig":[{"port":[1],"name":"optical_1","customName":false,"deviceType":"Optical","deviceClass":"optical","setting":{},"triportSourcePort":22},{"port":[2],"name":"optical_2","customName":false,"deviceType":"Optical","deviceClass":"optical","setting":{},"triportSourcePort":22},{"port":[3],"name":"optical_3","customName":false,"deviceType":"Optical","deviceClass":"optical","setting":{},"triportSourcePort":22},{"port":[4],"name":"optical_4","customName":false,"deviceType":"Optical","deviceClass":"optical","setting":{},"triportSourcePort":22},{"port":[5],"name":"optical_5","customName":false,"deviceType":"Optical","deviceClass":"optical","setting":{},"triportSourcePort":22},{"port":[6],"name":"optical_6","customName":false,"deviceType":"Optical","deviceClass":"optical","setting":{},"triportSourcePort":22}],"slot":0,"platform":"V5","sdkVersion":"20240802.15.00.00","appVersion":"4.0.8","fileFormat":"2.0.0","targetBrainGen":"First","v5Sounds":[{"name":"game over","url":"static/sounds/mixkit-arcade-retro-game-over-213.wav"}],"v5SoundsEnabled":false}
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+optical_1 = Optical(Ports.PORT1)
+optical_2 = Optical(Ports.PORT2)
+optical_3 = Optical(Ports.PORT3)
+optical_4 = Optical(Ports.PORT4)
+optical_5 = Optical(Ports.PORT5)
+optical_6 = Optical(Ports.PORT6)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+# Make random actually random
+def initializeRandomSeed():
+    wait(100, MSEC)
+    random = brain.battery.voltage(MV) + brain.battery.current(CurrentUnits.AMP) * 100 + brain.timer.system_high_res()
+    urandom.seed(int(random))
+      
+# Set random seed 
+initializeRandomSeed()
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:      Castone Physical Model
+#	Author:       Riley Ashok
+#	Created:      April 26, 2025
+#	Description:  VEXcode V5 Python Project
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+
+# Begin project code
+
+import vex
+
+# 
+
+
+# Initialize Brain and Optical Sensor
+#brain = vex.Brain()
+#optical_sensor = vex.Optical(brain.three_wire_port.a)  # Connect to a three-wire port
+
+brain.screen.print("I work2")
+print("I work3")
+
+#initialize variables
+hue = 0
+timeRight1 = 0.0
+timeRight2 = 0.0
+timeRight3 = 0.0
+timeRight4 = 0.0
+timeRight5 = 0.0
+timeRight6 = 0.0
+
+timeLeft1 = 0.0
+timeLeft2 = 0.0
+timeLeft3 = 0.0
+timeLeft4 = 0.0
+timeLeft5 = 0.0
+timeLeft6 = 0.0
+
+planeLength1 = 0.0
+planeLength2 = 0.0
+planeLength3 = 0.0
+planeLength4 = 0.0
+planeLength5 = 0.0
+planeLength6 = 0.0
+
+
+
+# Functions using optical sensor 1 to get times
+def detect_timeRight1():
+    #brain.screen.print("Waiting for red detection...")
+    
+    while True:
+        hue1 = optical_1.hue()  # Get color hue
+
+        # Check if hue corresponds to red (typically between 0-60 degrees)
+        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED
+            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds
+            #brain.screen.clear_screen()
+            #brain.screen.print(f"Red detected at: {detected_time:.2f} seconds")
+        
+            break  # Stop loop once red is detected
+        
+        return timeRight1
+        vex.wait(50)  # Small delay to reduce CPU usage
+
+def detect_timeLeft1():
+
+    while True:
+        hue11 = optical_1.hue() # Get hue color
+
+        # Check whether hue is not red
+        if 60 <= hue <= 360: #FIND VALUES OF NO RED
+            
+            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds
+
+            break
+
+        return timeLeft1
+        vex.wait(50)
+
+# Functions using optical sensor 2 to get times
+def detect_timeRight2():
+    #brain.screen.print("Waiting for red detection...")
+    
+    while True:
+        hue2 = optical_2.hue()  # Get color hue
+
+        # Check if hue corresponds to red (typically between 0-60 degrees)
+        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED
+            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds
+            #brain.screen.clear_screen()
+            #brain.screen.print(f"Red detected at: {detected_time:.2f} seconds")
+            break  # Stop loop once red is detected
+        
+        return timeRight2
+        vex.wait(50)  # Small delay to reduce CPU usage
+
+def detect_timeLeft2():
+
+    while True:
+        hue22 = optical_2.hue() # Get hue color
+
+        # Check whether hue is not red
+        if 60 <= hue <= 360: #FIND VALUES OF NO RED
+            
+            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds
+
+            break
+
+        return timeLeft2
+        vex.wait(50)
+
+# Functions using optical sensor 3 to get times
+def detect_timeRight3():
+    #brain.screen.print("Waiting for red detection...")
+    
+    while True:
+        hue3 = optical_3.hue()  # Get color hue
+
+        # Check if hue corresponds to red (typically between 0-60 degrees)
+        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED
+            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds
+            #brain.screen.clear_screen()
+            #brain.screen.print(f"Red detected at: {detected_time:.2f} seconds")
+            break  # Stop loop once red is detected
+        
+        return timeRight3
+        vex.wait(50)  # Small delay to reduce CPU usage
+
+def detect_timeLeft3():
+
+    while True:
+        hue33 = optical_3.hue() # Get hue color
+
+        # Check whether hue is not red
+        if 60 <= hue <= 360: #FIND VALUES OF NO RED
+            
+            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds
+
+            break
+
+        return timeLeft3
+        vex.wait(50)
+
+# Functions using optical sensor 4 to get times
+def detect_timeRight4():
+    #brain.screen.print("Waiting for red detection...")
+    
+    while True:
+        hue4 = optical_4.hue()  # Get color hue
+
+        # Check if hue corresponds to red (typically between 0-60 degrees)
+        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED
+            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds
+            #brain.screen.clear_screen()
+            #brain.screen.print(f"Red detected at: {detected_time:.2f} seconds")
+            break  # Stop loop once red is detected
+        
+        return timeRight4
+        vex.wait(50)  # Small delay to reduce CPU usage
+
+def detect_timeLeft4():
+
+    while True:
+        hue44 = optical_4.hue() # Get hue color
+
+        # Check whether hue is not red
+        if 60 <= hue <= 360: #FIND VALUES OF NO RED
+            
+            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds
+
+            break
+
+        return timeLeft4
+        vex.wait(50)
+
+
+# Functions using optical sensor 5 to get times
+def detect_timeRight5():
+    #brain.screen.print("Waiting for red detection...")
+    
+    while True:
+        hue5 = optical_5.hue()  # Get color hue
+
+        # Check if hue corresponds to red (typically between 0-60 degrees)
+        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED
+            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds
+            #brain.screen.clear_screen()
+            #brain.screen.print(f"Red detected at: {detected_time:.2f} seconds")
+            break  # Stop loop once red is detected
+        
+        return timeRight5
+        vex.wait(50)  # Small delay to reduce CPU usage
+
+def detect_timeLeft5():
+
+    while True:
+        hue55 = optical_5.hue() # Get hue color
+
+        # Check whether hue is not red
+        if 60 <= hue <= 360: #FIND VALUES OF NO RED
+            
+            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds
+
+            break
+
+        return timeLeft5
+        vex.wait(50)
+
+# Functions using optical sensor 6 to get times
+def detect_timeRight6():
+    #brain.screen.print("Waiting for red detection...")
+    
+    while True:
+        hue1 = optical_6.hue()  # Get color hue
+
+        # Check if hue corresponds to red (typically between 0-60 degrees)
+        if 0 <= hue <= 60: #FIND THE VALUES THAT ARE HALF RED
+            timeRight = brain.timer.time(vex.SECONDS)  # Capture time in seconds
+            #brain.screen.clear_screen()
+            #brain.screen.print(f"Red detected at: {detected_time:.2f} seconds")
+            break  # Stop loop once red is detected
+        
+        return timeRight6
+        vex.wait(50)  # Small delay to reduce CPU usage
+
+def detect_timeLeft6():
+
+    while True:
+        hue66 = optical_6.hue() # Get hue color
+
+        # Check whether hue is not red
+        if 60 <= hue <= 360: #FIND VALUES OF NO RED
+            
+            timeLeft = brain.timer.time(vex.SECONDS) #time in seconds
+
+            break
+
+        return timeLeft6
+        vex.wait(50)
+
+
+# Run detection function 1
+detect_timeRight1() #get time1
+detect_timeLeft1() #get time11
+
+# Run detection function 2
+detect_timeRight2() #get time2
+detect_timeLeft2() #get time22
+
+# Run detection function 3
+detect_timeRight3() #get time3
+detect_timeLeft3() #get time33
+
+# Run detection function 4
+detect_timeRight4() #get time4
+detect_timeLeft4() #get time44
+
+# Run detection function 5
+detect_timeRight5() #get time5
+detect_timeLeft5() #get time55
+
+# Run detection function 6
+detect_timeRight6() #get time6
+detect_timeLeft6() #get time66
+
+
+#define some variables
+beamDistance = 0.26 #meters
+
+timeSilent1 = timeLeft1 - timeRight1
+timeSilent2 = timeLeft2 - timeRight2
+timeSilent3 = timeLeft3 - timeRight3
+timeSilent4 = timeLeft4 - timeRight4
+timeSilent5 = timeLeft5 - timeRight5
+timeSilent6 = timeLeft6 - timeRight6
+
+#Find plane lengths
+def find_length1(timeSilent1, timeRight1):
+    #MATH EQUATIONS
+    #d = ((ts/tr)+1)d
+    #d = ((parenthesis1)+1)d
+    #d = (parenthesis2)d
+
+    #MATH CODED
+    parenthesis1 = timeSilent1/timeRight1
+    parenthesis2 = parenthesis1 + 1
+    planeLength = parenthesis2 * beamDistance
+    
+    #PRINT STATEMENTS
+    #print(f"The length of the plane is: {planeLength} meters")
+
+    #RETURN STATEMENTS
+    return planeLength1
+
+
+def find_length2(timeSilent2, timeRight2):
+    #MATH EQUATIONS
+    #d = ((ts/tr)+1)d
+    #d = ((parenthesis1)+1)d
+    #d = (parenthesis2)d
+
+    #MATH CODED
+    parenthesis1 = timeSilent2/timeRight2
+    parenthesis2 = parenthesis1 + 1
+    planeLength = parenthesis2 * beamDistance
+    
+    #PRINT STATEMENTS
+    #print(f"The length of the plane is: {planeLength} meters")
+
+    #RETURN STATEMENTS
+    return planeLength2
+
+
+def find_length3(timeSilent3, timeRight3):
+    #MATH EQUATIONS
+    #d = ((ts/tr)+1)d
+    #d = ((parenthesis1)+1)d
+    #d = (parenthesis2)d
+
+    #MATH CODED
+    parenthesis1 = timeSilent3/timeRight3
+    parenthesis2 = parenthesis1 + 1
+    planeLength = parenthesis2 * beamDistance
+    
+    #PRINT STATEMENTS
+    #print(f"The length of the plane is: {planeLength} meters")
+
+    #RETURN STATEMENTS
+    return planeLength3
+
+
+
+def find_length4(timeSilent4, timeRight4):
+    #MATH EQUATIONS
+    #d = ((ts/tr)+1)d
+    #d = ((parenthesis1)+1)d
+    #d = (parenthesis2)d
+
+    #MATH CODED
+    parenthesis1 = timeSilent4/timeRight4
+    parenthesis2 = parenthesis1 + 1
+    planeLength = parenthesis2 * beamDistance
+    
+    #PRINT STATEMENTS
+    #print(f"The length of the plane is: {planeLength} meters")
+
+    #RETURN STATEMENTS
+    return planeLength4
+
+
+def find_length5(timeSilent5, timeRight5):
+    #MATH EQUATIONS
+    #d = ((ts/tr)+1)d
+    #d = ((parenthesis1)+1)d
+    #d = (parenthesis2)d
+
+    #MATH CODED
+    parenthesis1 = timeSilent5/timeRight5
+    parenthesis2 = parenthesis1 + 1
+    planeLength = parenthesis2 * beamDistance
+    
+    #PRINT STATEMENTS
+    #print(f"The length of the plane is: {planeLength} meters")
+
+    #RETURN STATEMENTS
+    return planeLength5
+
+
+def find_length6(timeSilent6, timeRight6):
+    #MATH EQUATIONS
+    #d = ((ts/tr)+1)d
+    #d = ((parenthesis1)+1)d
+    #d = (parenthesis2)d
+
+    #MATH CODED
+    parenthesis1 = timeSilent6/timeRight6
+    parenthesis2 = parenthesis1 + 1
+    planeLength = parenthesis2 * beamDistance
+    
+    #PRINT STATEMENTS
+    #print(f"The length of the plane is: {planeLength} meters")
+
+    #RETURN STATEMENTS
+    return planeLength6
+
+#Velocity function, only using Right1 because I'm lazy and whats the difference
+def find_velocity(timeRight1):
+    #MATH EQUATIONS
+    #v = d/tr
+
+    #MATH CODED
+    planeVelocity = beamDistance / timeRight1
+
+    #PRINT STATEMENTS
+    #print(f"The velocity of the plane is: {planeVelocity} m/s")
+    #print(f"----------------------------------")
+    #print(f" ")
+
+    #RETURN STATEMENT
+    return planeVelocity
+
+#altitude function, only using Left1 because again, why not
+def find_altitude(timeLeft1):
+    #MATH EQUATIONS
+    #(h0/h2) = (w0/d1)
+    #h2 = (h0*d1)/w0
+    #d1 = v(t2-t1)
+    #d1 = (D/tr)(t2-t1)
+
+    #MATH CODED
+    d1 = find_velocity(timeRight1) * (t2 - t1)
+    heightPlane = (heightInitial * d1) / halfBeamDistance
+
+    #PRINT STATEMENTS
+    #print(f"The distance between the cylinder and cone beams is: {d1} m")
+    #print(f"The altitude of the plane is: {heightPlane} m")
+
+    #RETURN STATEMENT
+    return heightPlane
+
+
+#graphics math
+
+y1 = planeLength1 * sin(0)
+x1 = planeLength1 * cos(0)
+
+y2 = planeLength2 * sin(60)
+x2 = planeLength2 * cos(60)
+
+y3 = planeLength3 * sin(120)
+x3 = planeLength3 * cos(120)
+
+y4 = planeLength4 * sin(180)
+x4 = planeLength4 * cos(180)
+
+y5 = planeLength5 * sin(240)
+x5 = planeLength5 * cos(240)
+
+y6 = planeLength6 * sin(300)
+x6 = planeLength6 * cos(300)
+
+#Graphics
+brain.screen.print("I got to graphics")
+brain.screen.draw_line(0, 0, x1, y1)
+brain.screen.draw_line(0, 0, x2, y2)
+brain.screen.draw_line(0, 0, x3, y3)
+brain.screen.draw_line(0, 0, x4, y4)
+brain.screen.draw_line(0, 0, x5, y5)
+brain.screen.draw_line(0, 0, x6, y6)
+
+
