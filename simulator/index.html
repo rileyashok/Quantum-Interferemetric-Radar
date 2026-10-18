@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPI-R Beam Simulator</title>
+<meta name="description" content="Simulate a plane flying through laser beams sent down from a satellite or high-altitude platform, and recover its speed, length and altitude from photon counts.">
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --text: #15181d; --muted: #5a6370; --border: #dde2e8;
+    --accent: #2563eb; --on-accent: #ffffff;
+    --sky-top: #d6e4f5; --sky-bottom: #f1f6fc; --ground: #cdd6c4; --station: #e9ece6;
+    --beam-cone: #7c3aed; --beam-a: #0f8f84; --beam-b: #c46a00; --plane: #39404c;
+    --warn-bg: #fff6e0; --warn-text: #7f4d00; --err-bg: #fdeaea; --err-text: #9f1d1d; --ok: #157a3a;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1115; --panel: #161a20; --text: #e5e8ed; --muted: #98a2af; --border: #29303a;
+      --accent: #6aa8ff; --on-accent: #0b1220;
+      --sky-top: #0a1729; --sky-bottom: #15253b; --ground: #222b24; --station: #1c231e;
+      --beam-cone: #b197fc; --beam-a: #3fd6c6; --beam-b: #f7b955; --plane: #cfd5de;
+      --warn-bg: #352708; --warn-text: #f3c56a; --err-bg: #3a1515; --err-text: #f4a2a2; --ok: #5ad387;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1115; --panel: #161a20; --text: #e5e8ed; --muted: #98a2af; --border: #29303a;
+    --accent: #6aa8ff; --on-accent: #0b1220;
+    --sky-top: #0a1729; --sky-bottom: #15253b; --ground: #222b24; --station: #1c231e;
+    --beam-cone: #b197fc; --beam-a: #3fd6c6; --beam-b: #f7b955; --plane: #cfd5de;
+    --warn-bg: #352708; --warn-text: #f3c56a; --err-bg: #3a1515; --err-text: #f4a2a2; --ok: #5ad387;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header { max-width: 1320px; margin: 0 auto; padding: 24px 16px 4px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); max-width: 75ch; }
+  h2 { font-size: 1rem; margin: 0 0 10px; }
+  h3 { font-size: .9rem; margin: 18px 0 8px; }
+
+  .layout {
+    max-width: 1320px; margin: 0 auto; padding: 16px;
+    display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start;
+  }
+  .stage { display: grid; gap: 16px; min-width: 0; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .controls { position: sticky; top: 16px; }
+  @media (max-width: 1100px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .controls { position: static; }
+  }
+  @media (max-width: 480px) {
+    .card { padding: 12px; }
+    th, td { padding: 6px 4px; }
+    table { font-size: .85rem; }
+  }
+
+  fieldset { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
+  legend {
+    font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin-bottom: 4px; padding: 0;
+  }
+  label.row { display: grid; grid-template-columns: 1fr 112px; align-items: center; gap: 8px; margin: 6px 0; font-size: .9rem; }
+  label.stack { display: block; margin: 6px 0; font-size: .9rem; }
+  label.stack select { margin-top: 4px; }
+  .unit { color: var(--muted); font-size: .8rem; }
+  input[type=number], select {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--text); font: inherit; font-size: .9rem;
+  }
+  input[type=number] { font-variant-numeric: tabular-nums; }
+  .slider { margin: 10px 0; font-size: .9rem; }
+  .slider .top { display: flex; justify-content: space-between; gap: 8px; }
+  output { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    font: inherit; font-size: .9rem; padding: 7px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer;
+  }
+  button:hover { border-color: var(--muted); }
+  button:disabled { opacity: .55; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .form-error { color: var(--err-text); font-size: .85rem; min-height: 1.3em; margin: 8px 0 0; }
+  .seed { color: var(--muted); font-size: .8rem; margin-top: 8px; }
+
+  canvas { display: block; width: 100%; border-radius: 8px; }
+  #timeline { cursor: ew-resize; touch-action: none; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .toolbar .note { color: var(--muted); font-size: .8rem; margin-left: auto; }
+  .legend { display: flex; gap: 16px; font-size: .8rem; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+  .legend .dash { display: inline-block; width: 18px; border-top: 2px dashed var(--muted); vertical-align: middle; margin-right: 4px; }
+  .legend .solid { display: inline-block; width: 18px; border-top: 2px solid var(--text); vertical-align: middle; margin-right: 4px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  tr.section td { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; padding-top: 14px; border-bottom: 0; }
+  .formula { color: var(--muted); font-size: .8rem; display: block; }
+  .good { color: var(--ok); } .meh { color: var(--warn-text); } .bad { color: var(--err-text); }
+
+  ul.checks { list-style: none; padding: 0; margin: 0; }
+  .checks li { padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; background: var(--warn-bg); color: var(--warn-text); font-size: .9rem; }
+  .checks li.error { background: var(--err-bg); color: var(--err-text); }
+  .checks li.ok { background: transparent; color: var(--ok); padding-left: 0; }
+  .checks code { display: block; opacity: .8; margin-top: 2px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8em; }
+  .muted { color: var(--muted); font-size: .85rem; }
+
+  details summary { cursor: pointer; font-weight: 600; }
+  details p, details li { max-width: 80ch; }
+  details ul { padding-left: 20px; }
+  .eq { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  footer { max-width: 1320px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: .8rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SPI-R Beam Simulator</h1>
+  <p>A plane flies through three laser beams sent down from a satellite or high-altitude platform. Ground detectors count photons, and the moments each beam goes dark reveal the plane's speed, length and altitude.</p>
+</header>
+
+<main class="layout">
+  <aside class="card controls" aria-label="Simulation settings">
+    <fieldset>
+      <legend>Scenario</legend>
+      <label class="stack">Emitter platform <select id="platform"></select></label>
+      <label class="stack">Target <select id="target"></select></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Target</legend>
+      <label class="row"><span>Length <span class="unit">L, m</span></span><input type="number" id="L" step="any" min="0" data-group="target"></label>
+      <label class="row"><span>Speed <span class="unit">v, m/s</span></span><input type="number" id="v" step="any" min="0" data-group="target"></label>
+      <label class="row"><span>Altitude <span class="unit">h, m</span></span><input type="number" id="h" step="any" min="0" data-group="target"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Beam geometry</legend>
+      <label class="row"><span>Emitter altitude <span class="unit">h₀, m</span></span><input type="number" id="h0" step="any" min="0" data-group="platform"></label>
+      <label class="row"><span>Cone half-width <span class="unit">w₀, m</span></span><input type="number" id="w0" step="any" min="0" data-group="platform"></label>
+      <label class="row"><span>A–B spacing <span class="unit">D, m</span></span><input type="number" id="D" step="any" min="0" data-group="platform"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Detectors and sky</legend>
+      <div class="slider">
+        <div class="top"><label for="flux">Photon flux per detector</label><output id="fluxOut" for="flux"></output></div>
+        <input type="range" id="flux" min="2" max="8" step="0.1" value="6">
+      </div>
+      <div class="slider">
+        <div class="top"><label for="qe">Detector efficiency</label><output id="qeOut" for="qe"></output></div>
+        <input type="range" id="qe" min="5" max="95" step="1" value="70">
+      </div>
+      <div class="slider">
+        <div class="top"><label for="dark">Dark counts</label><output id="darkOut" for="dark"></output></div>
+        <input type="range" id="dark" min="0" max="6" step="0.1" value="2.7">
+      </div>
+      <label class="row"><span>Sky</span><select id="sky"></select></label>
+      <label class="row"><span>Timing jitter</span><select id="jitter"></select></label>
+    </fieldset>
+
+    <div class="buttons">
+      <button class="primary" id="runBtn">Run</button>
+      <button id="noiseBtn" title="Same settings, different random photon arrivals">New photon noise</button>
+    </div>
+    <p class="form-error" id="formError" role="alert"></p>
+    <div class="seed" id="seedOut"></div>
+  </aside>
+
+  <section class="stage">
+    <div class="card">
+      <canvas id="scene" role="img" aria-label="Side view: emitter at the top, three beams down to a ground station, and the plane flying through them"></canvas>
+      <div class="toolbar">
+        <button id="playBtn">Pause</button>
+        <button id="replayBtn">Replay</button>
+        <span class="note">Vertical and horizontal scales differ. The plane's height is drawn for visibility.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Photons reaching each detector</h2>
+      <canvas id="timeline" role="img" aria-label="Photon counts over time for the cone, beam A and beam B detectors"></canvas>
+      <div class="legend">
+        <span><span class="dash"></span>true moment the beam is cut / cleared</span>
+        <span><span class="solid"></span>moment estimated from photons</span>
+        <span>Click or drag to scrub.</span>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Results</h2>
+        <div class="table-wrap"><table id="results"></table></div>
+      </div>
+      <div class="card">
+        <h2>Checks</h2>
+        <ul class="checks" id="checks"></ul>
+        <h3>How repeatable is it?</h3>
+        <p class="muted">Run the same settings 200 times with fresh photon noise to see the typical error.</p>
+        <button id="mcBtn">Run 200 trials</button>
+        <div id="mc" class="table-wrap" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <details class="card">
+      <summary>How it works</summary>
+      <h3>Setup</h3>
+      <p>An emitter at altitude h₀ sends three beams down to detectors at a ground station. Beams A and B are vertical and D apart. The <em>cone</em> beam is slanted: it starts w₀ to the left of beam A at the emitter and converges onto the same ground point as beam A. A plane flying straight across cuts the cone first, then A, then B.</p>
+      <h3>From photons to edges</h3>
+      <p>Each detector receives photons at random times, at a steady average rate. While the plane is in the way, only dark counts arrive. The simulator first counts photons in short time bins to find roughly when each beam went dark. It then fits the exact moment from the individual photon arrival times near each edge (a maximum-likelihood fit).</p>
+      <p>Detected rate with the beam open = <span class="eq">flux × sky transmission × detector efficiency + dark counts</span>. Timing jitter blurs every timestamp.</p>
+      <h3>Formulas (same as the team's <code>SPI-R Backend Calculations</code>)</h3>
+      <ul>
+        <li><span class="eq">tᵣ</span> = delay between beam A and beam B being cut → speed <span class="eq">v = D / tᵣ</span></li>
+        <li><span class="eq">tₛ</span> = time A and B are both blocked (negative means a gap: the plane is shorter than D) → length <span class="eq">L = D (tₛ / tᵣ + 1)</span></li>
+        <li><span class="eq">Δt</span> = delay between the cone and beam A being cut → <span class="eq">d₁ = v Δt</span>. By similar triangles <span class="eq">d₁ / h = w₀ / h₀</span>, so altitude <span class="eq">h = h₀ d₁ / w₀</span></li>
+      </ul>
+      <p>tᵣ and Δt are averaged over the nose and tail edges to cut noise.</p>
+      <h3>Checks</h3>
+      <p>Named after the placeholder functions in the team's backend. Their thresholds were left blank, so these are our picks: sky transmission below 5%, dark counts above 10% of the signal, fewer than about 120 photons per blocked beam, and estimated speed below 35 m/s (not applied to the tabletop model).</p>
+      <h3>Not modeled yet</h3>
+      <ul>
+        <li>Interference or any quantum effects (the "interferometric" part of the project name).</li>
+        <li>Beam width, divergence, pointing error and atmospheric turbulence: beams are ideal thin lines.</li>
+        <li>The plane's height and wings: it is a line along its flight path that fully blocks a beam.</li>
+        <li>Planes not flying straight across the beams, a moving satellite, and Earth's curvature.</li>
+        <li>Background sunlight and stray reflections (fold them into dark counts for now).</li>
+      </ul>
+    </details>
+  </section>
+</main>
+<footer>SPI-R capstone project. Physics core in <code>sim.js</code>, tests in <code>sim.test.js</code>.</footer>
+
+<script src="sim.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  const PLATFORMS = {
+    strat: { label: 'Stratospheric platform, 35 km (team values)', h0: 35000, w0: 10, D: 20 },
+    leo:   { label: 'Low-Earth-orbit satellite, 500 km', h0: 500000, w0: 50, D: 20 },
+    table: { label: 'Tabletop model, 1 m', h0: 1, w0: 0.1, D: 0.26 },
+  };
+  const TARGETS = {
+    airliner: { label: 'Airliner (A320 class)', L: 37.6, v: 230, h: 11000 },
+    widebody: { label: 'Wide-body (777 class)', L: 63.7, v: 250, h: 11500 },
+    bizjet:   { label: 'Business jet', L: 20, v: 220, h: 13000 },
+    fighter:  { label: 'Fighter jet', L: 19, v: 550, h: 9000 },
+    light:    { label: 'Light aircraft (Cessna 172 class)', L: 8.3, v: 60, h: 1500 },
+    drone:    { label: 'Drone', L: 1.5, v: 20, h: 120 },
+    bird:     { label: 'Large bird', L: 1, v: 15, h: 300 },
+    toy:      { label: 'Toy plane (tabletop)', L: 0.3, v: 0.5, h: 0.4 },
+  };
+  const SKIES = {
+    clear: { label: 'Clear (80%)', trans: 0.8 },
+    haze:  { label: 'Hazy (45%)', trans: 0.45 },
+    thin:  { label: 'Thin cloud (8%)', trans: 0.08 },
+    thick: { label: 'Thick cloud (0.2%)', trans: 0.002 },
+  };
+  const JITTERS = [[50e-12, '50 ps'], [1e-9, '1 ns'], [100e-9, '100 ns'], [10e-6, '10 µs']];
+  const PLAY_SECONDS = 7;
+  const TIMELINE_H = 200;
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Side-view plane outline: u runs tail (0) to nose (1), v is height in body units.
+  const BODY = [[0, .15], [.06, .25], [.85, .25], [.96, .15], [1, 0], [.96, -.12], [.85, -.22], [.1, -.22], [0, .05]];
+  const FIN = [[0, .15], [.03, 1], [.11, 1], [.2, .25]];
+  const WING = [[.36, -.02], [.62, -.02], [.54, -.14], [.42, -.14]];
+
+  let S = null, seed = 1, t = 0, playing = false, dirty = true, lastFrame = 0;
+  let particles = [], colors = null, timelineLayer = null, timelineGeom = null, mcToken = 0, runTimer = 0;
+
+  // ---------- formatting ----------
+
+  function sig(x, n = 4) {
+    if (x == null || !isFinite(x)) return '—';
+    if (x === 0) return '0';
+    return Number(x.toPrecision(n)).toLocaleString('en-US', { maximumFractionDigits: 12 });
+  }
+  function withUnits(x, units, n) {
+    if (x == null || !isFinite(x)) return '—';
+    const a = Math.abs(x);
+    if (a === 0) return `0 ${units.find(u => u[0] === 1)[1]}`;
+    for (const [f, u] of units) if (a >= f * 0.9995) return `${sig(x / f, n)} ${u}`;
+    const [f, u] = units[units.length - 1];
+    return `${sig(x / f, n)} ${u}`;
+  }
+  const fmtTime = (x, n) => withUnits(x, [[1, 's'], [1e-3, 'ms'], [1e-6, 'µs'], [1e-9, 'ns'], [1e-12, 'ps']], n);
+  const fmtLen = (x, n) => withUnits(x, [[1000, 'km'], [1, 'm'], [0.01, 'cm'], [0.001, 'mm'], [1e-6, 'µm']], n);
+  const fmtSpeed = x => (x == null || !isFinite(x)) ? '—' : `${sig(x)} m/s`;
+  const fmtRate = x => withUnits(x, [[1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, '']], 2).trim() + ' /s';
+  const signed = (s, x) => (x > 0 ? '+' : '') + s;
+
+  // ---------- controls ----------
+
+  function fillSelect(sel, entries) {
+    sel.innerHTML = '';
+    for (const [value, label] of entries) sel.add(new Option(label, value));
+  }
+  fillSelect($('platform'), [...Object.entries(PLATFORMS).map(([k, o]) => [k, o.label]), ['custom', 'Custom']]);
+  fillSelect($('target'), [...Object.entries(TARGETS).map(([k, o]) => [k, o.label]), ['custom', 'Custom']]);
+  fillSelect($('sky'), Object.entries(SKIES).map(([k, o]) => [k, o.label]));
+  fillSelect($('jitter'), JITTERS.map(([v, l]) => [String(v), l]));
+
+  function applyPlatform(key) {
+    const o = PLATFORMS[key];
+    $('platform').value = key;
+    $('h0').value = o.h0; $('w0').value = o.w0; $('D').value = o.D;
+  }
+  function applyTarget(key) {
+    const o = TARGETS[key];
+    $('target').value = key;
+    $('L').value = o.L; $('v').value = o.v; $('h').value = o.h;
+  }
+
+  $('platform').addEventListener('change', () => {
+    const k = $('platform').value, tk = $('target').value;
+    if (k === 'custom') return;
+    applyPlatform(k);
+    if (k === 'table' && tk !== 'toy') applyTarget('toy');
+    if (k !== 'table' && tk === 'toy') applyTarget('airliner');
+    schedule();
+  });
+  $('target').addEventListener('change', () => {
+    const k = $('target').value, pk = $('platform').value;
+    if (k === 'custom') return;
+    applyTarget(k);
+    if (k === 'toy' && pk !== 'table') applyPlatform('table');
+    if (k !== 'toy' && pk === 'table') applyPlatform('strat');
+    schedule();
+  });
+  document.querySelectorAll('input[data-group]').forEach(el => {
+    el.addEventListener('input', () => { $(el.dataset.group).value = 'custom'; schedule(); });
+  });
+  ['flux', 'qe', 'dark'].forEach(id => $(id).addEventListener('input', () => { updateOutputs(); schedule(); }));
+  ['sky', 'jitter'].forEach(id => $(id).addEventListener('change', () => schedule()));
+
+  function updateOutputs() {
+    $('fluxOut').textContent = fmtRate(10 ** +$('flux').value);
+    $('qeOut').textContent = `${$('qe').value}%`;
+    $('darkOut').textContent = fmtRate(10 ** +$('dark').value);
+  }
+
+  function readParams() {
+    return {
+      L: +$('L').value, v: +$('v').value, h: +$('h').value,
+      h0: +$('h0').value, w0: +$('w0').value, D: +$('D').value,
+      flux: 10 ** +$('flux').value, qe: +$('qe').value / 100, dark: 10 ** +$('dark').value,
+      trans: SKIES[$('sky').value].trans, jitter: +$('jitter').value,
+    };
+  }
+
+  function schedule() {
+    clearTimeout(runTimer);
+    runTimer = setTimeout(() => run(true), 150);
+  }
+
+  function run(autoplay) {
+    const p = readParams();
+    const err = SPIR.validate(p);
+    $('formError').textContent = err || '';
+    if (err) return;
+    S = SPIR.simulate(p, seed);
+    $('seedOut').textContent = `Photon noise seed ${seed}`;
+    particles = [];
+    mcToken++;
+    $('mc').innerHTML = '';
+    $('mcBtn').disabled = false;
+    renderResults();
+    renderChecks();
+    buildTimeline();
+    if (autoplay && !reducedMotion) { t = 0; setPlaying(true); }
+    else { t = (S.detectors[1].tOn + S.detectors[1].tOff) / 2; setPlaying(false); }
+    dirty = true;
+  }
+
+  $('runBtn').addEventListener('click', () => run(true));
+  $('noiseBtn').addEventListener('click', () => { seed++; run(true); });
+  $('playBtn').addEventListener('click', () => {
+    if (!S) return;
+    if (!playing && t >= S.geom.span) t = 0;
+    setPlaying(!playing);
+  });
+  $('replayBtn').addEventListener('click', () => { if (!S) return; t = 0; particles = []; setPlaying(true); });
+
+  function setPlaying(on) {
+    playing = on;
+    $('playBtn').textContent = on ? 'Pause' : 'Play';
+    dirty = true;
+  }
+
+  // ---------- results ----------
+
+  function errClass(r) {
+    const a = Math.abs(r);
+    return a < 0.01 ? 'good' : a < 0.1 ? 'meh' : 'bad';
+  }
+
+  function renderResults() {
+    const T = S.truth, E = S.est || {};
+    const main = [
+      ['Speed', 'v = D / tᵣ', T.v, E.v, fmtSpeed],
+      ['Length', 'L = D (tₛ / tᵣ + 1)', T.L, E.L, fmtLen],
+      ['Altitude', 'h = h₀ d₁ / w₀', T.h, E.h, fmtLen],
+    ];
+    const times = [
+      ['tᵣ', 'beam A → beam B delay', T.tr, E.tr, fmtTime],
+      ['tₛ', 'A and B both blocked', T.ts, E.ts, fmtTime],
+      ['Δt', 'cone → beam A delay', T.dtc, E.dtc, fmtTime],
+      ['d₁', 'v × Δt', T.d1, E.d1, fmtLen],
+    ];
+    let html = '<thead><tr><th>Quantity</th><th class="num">True</th><th class="num">Estimated</th><th class="num">Error</th></tr></thead><tbody>';
+    for (const [name, formula, tv, ev, fmt] of main) {
+      const ok = ev != null && isFinite(ev);
+      const r = ok ? (ev - tv) / tv : null;
+      const errTxt = ok ? signed(`${sig(r * 100, 2)}%`, r) : '—';
+      html += `<tr><td>${name}<span class="formula">${formula}</span></td><td class="num">${fmt(tv)}</td>` +
+        `<td class="num">${ok ? fmt(ev) : '—'}</td><td class="num ${ok ? errClass(r) : 'bad'}">${errTxt}</td></tr>`;
+    }
+    html += '<tr class="section"><td colspan="4">Measured from photon timing</td></tr>';
+    for (const [name, desc, tv, ev, fmt] of times) {
+      const ok = ev != null && isFinite(ev);
+      html += `<tr><td>${name}<span class="formula">${desc}</span></td><td class="num">${fmt(tv)}</td>` +
+        `<td class="num">${ok ? fmt(ev) : '—'}</td><td class="num muted">${ok ? signed(fmt(ev - tv, 2), ev - tv) : '—'}</td></tr>`;
+    }
+    $('results').innerHTML = html + '</tbody>';
+  }
+
+  function renderChecks() {
+    const ul = $('checks');
+    ul.innerHTML = '';
+    if (!S.warnings.length) {
+      const li = document.createElement('li');
+      li.className = 'ok';
+      li.textContent = '✓ All checks passed.';
+      ul.append(li);
+      return;
+    }
+    for (const w of S.warnings) {
+      const li = document.createElement('li');
+      li.className = w.level;
+      li.textContent = w.text;
+      const code = document.createElement('code');
+      code.textContent = w.check;
+      li.append(code);
+      ul.append(li);
+    }
+  }
+
+  $('mcBtn').addEventListener('click', () => {
+    if (!S) return;
+    const token = ++mcToken, p = S.params, truth = S.truth, N = 200, ests = [];
+    let i = 0;
+    $('mcBtn').disabled = true;
+    const chunk = () => {
+      if (token !== mcToken) return;
+      const end = Math.min(N, i + 10);
+      for (; i < end; i++) ests.push(SPIR.simulate(p, 100000 + seed * 1000 + i).est);
+      if (i < N) { $('mc').innerHTML = `<p class="muted">Running… ${i} / ${N}</p>`; setTimeout(chunk, 0); }
+      else { renderMC(SPIR.summarize(ests, truth), truth); $('mcBtn').disabled = false; }
+    };
+    chunk();
+  });
+
+  function renderMC(sum, truth) {
+    const rows = [['Speed', 'v'], ['Length', 'L'], ['Altitude', 'h']];
+    let html = '<table><thead><tr><th>Quantity</th><th class="num">Avg. error</th><th class="num">Typical spread</th></tr></thead><tbody>';
+    for (const [name, k] of rows) {
+      const s = sum.stats[k];
+      const abs = k === 'v' ? `${sig(s.sd * truth[k], 2)} m/s` : fmtLen(s.sd * truth[k], 2);
+      const spread = isFinite(s.sd) ? `±${sig(s.sd * 100, 2)}% <span class="muted">(±${abs})</span>` : '—';
+      html += `<tr><td>${name}</td><td class="num">${isFinite(s.bias) ? signed(`${sig(s.bias * 100, 2)}%`, s.bias) : '—'}</td><td class="num">${spread}</td></tr>`;
+    }
+    html += '</tbody></table>';
+    html += `<p class="muted">${sum.n} trials${sum.failures ? `, <span class="bad">${sum.failures} failed to find all three beams</span>` : ', all found every beam'}.</p>`;
+    $('mc').innerHTML = html;
+  }
+
+  // ---------- canvas helpers ----------
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = n => cs.getPropertyValue(n).trim();
+    return {
+      panel: v('--panel'), text: v('--text'), muted: v('--muted'), border: v('--border'), accent: v('--accent'),
+      skyTop: v('--sky-top'), skyBottom: v('--sky-bottom'), ground: v('--ground'), station: v('--station'),
+      plane: v('--plane'), beams: [v('--beam-cone'), v('--beam-a'), v('--beam-b')],
+    };
+  }
+
+  function fitCanvas(cv, cssH) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth;
+    cv.style.height = cssH + 'px';
+    const W = Math.round(w * dpr), H = Math.round(cssH * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h: cssH };
+  }
+
+  function line(ctx, x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+  function polyline(ctx, pts) {
+    if (pts.length < 2) return;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+  }
+  function polygon(ctx, pts) {
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath(); ctx.fill();
+  }
+  function niceStep(raw) {
+    const p = 10 ** Math.floor(Math.log10(raw)), m = raw / p;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+  }
+  const FONT = '11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  const FONT_B = '600 11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
+  // ---------- scene ----------
+
+  function sceneHeight(w) { return w < 600 ? 360 : 450; }
+
+  function sceneLayout(w, h) {
+    const p = S.params, g = S.geom;
+    const left = 62, right = 14, groundY = h - 62, satY = 46;
+    // Break the altitude axis when the emitter is far above the plane.
+    const brk = p.h0 > 4 * p.h;
+    const hb = brk ? 2 * p.h : p.h0;
+    const bandTop = brk ? 118 : satY;
+    const yOf = alt => alt <= hb
+      ? groundY - (alt / hb) * (groundY - bandTop)
+      : bandTop - ((alt - hb) / (p.h0 - hb)) * (bandTop - satY);
+    const c0 = Math.min(-p.w0, -g.d1), c1 = p.D, cw = c1 - c0;
+    const padX = 0.22 * (cw + p.L);
+    const xmin = c0 - padX, xmax = c1 + padX;
+    const sx = (w - left - right) / (xmax - xmin);
+    const xOf = x => left + (x - xmin) * sx;
+    return { left, right, groundY, satY, bandTop, hb, brk, yOf, xOf, sx };
+  }
+
+  function beamPath(i, Lay) {
+    const p = S.params;
+    const xAt = alt => i === 0 ? -p.w0 * alt / p.h0 : S.detectors[i].x;
+    const alts = Lay.brk ? [p.h0, Lay.hb, 0] : [p.h0, 0];
+    return alts.map(a => [Lay.xOf(xAt(a)), Lay.yOf(a)]);
+  }
+  function xOnPath(pts, y) {
+    for (let k = 0; k < pts.length - 1; k++) {
+      const [x1, y1] = pts[k], [x2, y2] = pts[k + 1];
+      if (y >= y1 && y <= y2) return y2 === y1 ? x1 : x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+    }
+    return pts[pts.length - 1][0];
+  }
+  function splitPath(pts, y) {
+    const mid = [xOnPath(pts, y), y];
+    return [[...pts.filter(q => q[1] < y), mid], [mid, ...pts.filter(q => q[1] > y)]];
+  }
+  const isBlocked = d => t >= d.tOn && t < d.tOff;
+
+  function stepParticles(dtWall, Lay, planeY) {
+    const sig = Math.max(S.rates.signal, 1);
+    const perSec = 10 + 70 * Math.min(1, Math.max(0, (Math.log10(sig) - 2) / 6));
+    const speed = (Lay.groundY - Lay.satY) / 1.1;
+    for (let i = 0; i < 3; i++) {
+      let n = perSec * dtWall;
+      while (n > 0) {
+        if (n >= 1 || Math.random() < n) particles.push({ i, y: Lay.satY + Math.random() * 6 });
+        n -= 1;
+      }
+    }
+    particles = particles.filter(pt => {
+      const y0 = pt.y;
+      pt.y += speed * dtWall;
+      if (isBlocked(S.detectors[pt.i]) && y0 <= planeY && pt.y >= planeY) return false;  // hits the plane
+      return pt.y < Lay.groundY;
+    });
+  }
+
+  function drawScene(dtWall) {
+    const cv = $('scene');
+    const { ctx, w, h } = fitCanvas(cv, sceneHeight(cv.clientWidth));
+    const C = colors, p = S.params, g = S.geom, Lay = sceneLayout(w, h);
+    const planeY = Lay.yOf(p.h);
+    if (dtWall) stepParticles(dtWall, Lay, planeY);
+
+    // sky and ground
+    const sky = ctx.createLinearGradient(0, 0, 0, Lay.groundY);
+    sky.addColorStop(0, C.skyTop); sky.addColorStop(1, C.skyBottom);
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, w, Lay.groundY);
+    ctx.fillStyle = C.ground; ctx.fillRect(0, Lay.groundY, w, h - Lay.groundY);
+
+    // beams
+    const paths = S.detectors.map((d, i) => beamPath(i, Lay));
+    ctx.lineCap = 'round';
+    paths.forEach((pts, i) => {
+      const [upper, lower] = splitPath(pts, planeY);
+      const dark = isBlocked(S.detectors[i]);
+      ctx.strokeStyle = C.beams[i];
+      if (Lay.brk) {
+        // Above the axis break the altitude scale is squashed: dash it so slanted
+        // beams don't read as physically bent.
+        const [far, near] = splitPath(upper, Lay.bandTop);
+        ctx.globalAlpha = 0.7; ctx.lineWidth = 1.4; ctx.setLineDash([4, 4]); polyline(ctx, far); ctx.setLineDash([]);
+        upper.length = 0; upper.push(...near);
+      }
+      ctx.globalAlpha = 0.16; ctx.lineWidth = 7; polyline(ctx, upper);
+      ctx.globalAlpha = 1; ctx.lineWidth = 1.6; polyline(ctx, upper);
+      if (!dark) { ctx.globalAlpha = 0.16; ctx.lineWidth = 7; polyline(ctx, lower); }
+      ctx.globalAlpha = dark ? 0.35 : 1; ctx.lineWidth = 1.6;
+      if (dark) ctx.setLineDash([2, 5]);
+      polyline(ctx, lower);
+      ctx.setLineDash([]);
+    });
+    ctx.globalAlpha = 1;
+
+    // photons in flight
+    for (const pt of particles) {
+      ctx.fillStyle = C.beams[pt.i];
+      ctx.beginPath(); ctx.arc(xOnPath(paths[pt.i], pt.y), pt.y, 1.9, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // broken altitude axis
+    if (Lay.brk) {
+      const yb = (Lay.satY + Lay.bandTop) / 2 + 6;
+      ctx.fillStyle = sky; ctx.fillRect(0, yb - 7, w, 14);
+      ctx.strokeStyle = C.muted; ctx.lineWidth = 1;
+      for (const yy of [yb - 7, yb + 7]) {
+        ctx.beginPath(); ctx.moveTo(0, yy);
+        for (let x = 0; x <= w; x += 8) ctx.lineTo(x, yy + ((x / 8) % 2 ? 2.5 : -2.5));
+        ctx.stroke();
+      }
+    }
+
+    // emitter
+    const ex0 = Lay.xOf(-p.w0), ex1 = Lay.xOf(p.D);
+    const ecx = (ex0 + ex1) / 2, bw = Math.max(36, ex1 - ex0 + 16), ecy = Lay.satY - 7;
+    ctx.fillStyle = C.plane; ctx.fillRect(ecx - bw / 2, ecy - 7, bw, 12);
+    ctx.globalAlpha = 0.7; ctx.fillStyle = C.accent;
+    ctx.fillRect(ecx - bw / 2 - 30, ecy - 5, 24, 8); ctx.fillRect(ecx + bw / 2 + 6, ecy - 5, 24, 8);
+    ctx.globalAlpha = 1;
+    ctx.font = FONT; ctx.fillStyle = C.text; ctx.textBaseline = 'middle';
+    const eLabel = `Emitter, h₀ = ${fmtLen(p.h0)}`;
+    const eW = ctx.measureText(eLabel).width;
+    if (ecx + bw / 2 + 40 + eW < w - 4) { ctx.textAlign = 'left'; ctx.fillText(eLabel, ecx + bw / 2 + 40, ecy); }
+    else if (ecx - bw / 2 - 40 - eW > Lay.left) { ctx.textAlign = 'right'; ctx.fillText(eLabel, ecx - bw / 2 - 40, ecy); }
+    else { ctx.textAlign = 'left'; ctx.fillText(eLabel, 8, 14); }
+
+    // beam labels just under the emitter
+    ctx.font = FONT_B;
+    const labelY = Lay.satY + 14;
+    ['Cone', 'A', 'B'].forEach((txt, i) => {
+      ctx.fillStyle = C.beams[i];
+      ctx.textAlign = i === 0 ? 'right' : 'left';
+      ctx.fillText(txt, xOnPath(paths[i], labelY) + (i === 0 ? -6 : 6), labelY);
+    });
+
+    // d1 marker at the plane's altitude (drawn first so the plane passes over it)
+    ctx.strokeStyle = C.muted; ctx.fillStyle = C.muted; ctx.lineWidth = 1; ctx.font = FONT;
+    dimension(ctx, Lay.xOf(-g.d1), Lay.xOf(0), planeY, `d₁ = ${fmtLen(g.d1, 3)}`, w, true);
+
+    // plane
+    const lenPx = Math.max(10, p.L * Lay.sx);
+    const xn = Lay.xOf(g.x0 + p.v * t), xt = xn - lenPx;
+    const bh = Math.min(26, Math.max(7, lenPx * 0.14));
+    const P = ([u, v]) => [xt + u * lenPx, planeY - v * bh];
+    ctx.fillStyle = C.plane;
+    polygon(ctx, BODY.map(P)); polygon(ctx, FIN.map(P));
+    ctx.globalAlpha = 0.5; polygon(ctx, WING.map(P)); ctx.globalAlpha = 1;
+
+    // altitude axis (drawn over the plane so its label stays readable)
+    const ax = Lay.left - 12;
+    ctx.fillStyle = sky; ctx.fillRect(0, Lay.bandTop - 8, ax + 1, Lay.groundY - Lay.bandTop + 8);
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1;
+    line(ctx, ax, Lay.bandTop, ax, Lay.groundY);
+    ctx.font = FONT; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const a of [0, Lay.hb]) {
+      const y = Lay.yOf(a);
+      if (Math.abs(y - planeY) < 14) continue;
+      line(ctx, ax - 4, y, ax, y);
+      ctx.fillStyle = C.muted; ctx.fillText(fmtLen(a, 3), ax - 6, y);
+    }
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 2;
+    line(ctx, ax - 5, planeY, ax + 1, planeY);
+    ctx.fillStyle = C.accent; ctx.font = FONT_B;
+    ctx.fillText(fmtLen(p.h, 3), ax - 7, planeY);
+
+    ctx.strokeStyle = C.muted; ctx.fillStyle = C.muted; ctx.lineWidth = 1; ctx.font = FONT;
+    dimension(ctx, Lay.xOf(0), Lay.xOf(p.D), Lay.groundY - 12, `D = ${fmtLen(p.D, 3)}`, w);
+
+    drawStation(ctx, Lay, C, paths, w);
+
+    // clock
+    ctx.font = FONT; ctx.fillStyle = C.text; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(`t = ${fmtTime(t, 3)}`, w - 10, 8);
+    const ratio = PLAY_SECONDS / g.span;
+    ctx.fillStyle = C.muted;
+    ctx.fillText(ratio >= 1 ? `slowed ${sig(ratio, 2)}×` : `sped up ${sig(1 / ratio, 2)}×`, w - 10, 22);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function dimension(ctx, x1, x2, y, label, w, below) {
+    line(ctx, x1, y, x2, y);
+    line(ctx, x1, y - 4, x1, y + 4);
+    line(ctx, x2, y - 4, x2, y + 4);
+    const tw = ctx.measureText(label).width;
+    if (below) {
+      // Under the gap if it fits, otherwise just outside it so no beam crosses the text.
+      ctx.textBaseline = 'top';
+      if (x2 - x1 > tw + 8) { ctx.textAlign = 'center'; ctx.fillText(label, (x1 + x2) / 2, y + 8); }
+      else if (x1 - 8 - tw > 70) { ctx.textAlign = 'right'; ctx.fillText(label, x1 - 8, y + 8); }
+      else { ctx.textAlign = 'left'; ctx.fillText(label, x2 + 8, y + 8); }
+      ctx.textBaseline = 'middle';
+      return;
+    }
+    ctx.textBaseline = 'bottom';
+    if (x2 - x1 > tw + 8) { ctx.textAlign = 'center'; ctx.fillText(label, (x1 + x2) / 2, y - 3); }
+    else if (x2 + 6 + tw < w) { ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x2 + 6, y); }
+    else { ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 - 6, y); }
+    ctx.textBaseline = 'middle';
+  }
+
+  function drawStation(ctx, Lay, C, paths, w) {
+    const gy = Lay.groundY;
+    const land = paths.map(pts => pts[pts.length - 1][0]);
+    const dx = [land[1] - 16, land[1] + 16, Math.max(land[2], land[1] + 48)];
+    const dy = gy + 24;
+    const x0 = dx[0] - 18, x1 = dx[2] + 18;
+    ctx.fillStyle = C.station; ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+    ctx.fillRect(x0, gy + 8, x1 - x0, 40); ctx.strokeRect(x0 + .5, gy + 8.5, x1 - x0 - 1, 39);
+    ctx.font = FONT; ctx.fillStyle = C.muted; ctx.textBaseline = 'middle';
+    if (x0 - 92 > 4) { ctx.textAlign = 'right'; ctx.fillText('Ground station', x0 - 8, gy + 28); }
+    else if (x1 + 92 < w) { ctx.textAlign = 'left'; ctx.fillText('Ground station', x1 + 8, gy + 28); }
+    const bin = Math.min(S.nb - 1, Math.max(0, Math.floor(t / S.dt)));
+    const norm = S.rates.on * S.dt;
+    ['C', 'A', 'B'].forEach((txt, i) => {
+      const glow = Math.min(1, S.detectors[i].counts[bin] / norm);
+      ctx.strokeStyle = C.beams[i]; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2;
+      line(ctx, land[i], gy, dx[i], dy - 7);
+      ctx.globalAlpha = 0.15 + 0.85 * glow; ctx.fillStyle = C.beams[i];
+      ctx.beginPath(); ctx.arc(dx[i], dy, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = C.text; ctx.font = FONT_B; ctx.textAlign = 'center';
+      ctx.fillText(txt, dx[i], dy + 16);
+    });
+  }
+
+  // ---------- timeline ----------
+
+  function timelineLayout(w, h) {
+    const x0 = 72, x1 = w - 12, top = 6, axisH = 24;
+    return { x0, x1, top, rowH: (h - top - axisH) / 3, axisY: h - axisH };
+  }
+
+  function buildTimeline() {
+    const cv = $('timeline');
+    const w = cv.clientWidth, h = TIMELINE_H, dpr = window.devicePixelRatio || 1;
+    if (!w) return;
+    const off = document.createElement('canvas');
+    off.width = Math.round(w * dpr); off.height = Math.round(h * dpr);
+    const ctx = off.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const C = colors, span = S.geom.span, TL = timelineLayout(w, h);
+    const X = tt => TL.x0 + (tt / span) * (TL.x1 - TL.x0);
+    const norm = S.rates.on * S.dt;
+    const cols = Math.max(1, Math.floor(TL.x1 - TL.x0)), bpc = S.nb / cols;
+
+    S.detectors.forEach((d, i) => {
+      const y0 = TL.top + i * TL.rowH, base = y0 + TL.rowH - 6, plotH = TL.rowH - 14;
+      ctx.strokeStyle = C.border; ctx.lineWidth = 1; line(ctx, TL.x0, base + .5, TL.x1, base + .5);
+      ctx.fillStyle = C.beams[i]; ctx.fillRect(8, base - plotH / 2 - 4, 8, 8);
+      ctx.fillStyle = C.text; ctx.font = FONT_B; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(d.label, 22, base - plotH / 2);
+
+      ctx.beginPath(); ctx.moveTo(TL.x0, base);
+      for (let c = 0; c < cols; c++) {
+        const i0 = Math.min(S.nb - 1, Math.floor(c * bpc)), i1 = Math.min(S.nb, Math.max(i0 + 1, Math.floor((c + 1) * bpc)));
+        let s = 0;
+        for (let k = i0; k < i1; k++) s += d.counts[k];
+        const f = Math.min(1.3, s / (i1 - i0) / norm);
+        ctx.lineTo(TL.x0 + c + .5, base - f * plotH * 0.75);
+      }
+      ctx.lineTo(TL.x0 + cols, base); ctx.closePath();
+      ctx.fillStyle = C.beams[i]; ctx.globalAlpha = 0.25; ctx.fill();
+      ctx.globalAlpha = 0.9; ctx.strokeStyle = C.beams[i]; ctx.lineWidth = 1; ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      ctx.strokeStyle = C.muted; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+      for (const tt of [d.tOn, d.tOff]) line(ctx, X(tt), y0 + 2, X(tt), base);
+      ctx.setLineDash([]);
+      if (d.est) {
+        ctx.strokeStyle = C.text; ctx.fillStyle = C.text; ctx.lineWidth = 1.5;
+        for (const tt of [d.est.tOn, d.est.tOff]) {
+          const x = X(tt);
+          line(ctx, x, y0 + 6, x, base);
+          ctx.beginPath(); ctx.moveTo(x - 4, y0 + 2); ctx.lineTo(x + 4, y0 + 2); ctx.lineTo(x, y0 + 7); ctx.closePath(); ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = C.muted; ctx.font = FONT; ctx.textAlign = 'center';
+        ctx.fillText('no blockage detected', (TL.x0 + TL.x1) / 2, y0 + TL.rowH / 2);
+      }
+    });
+
+    ctx.strokeStyle = C.muted; ctx.fillStyle = C.muted; ctx.font = FONT; ctx.lineWidth = 1;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const step = niceStep(span / Math.max(2, Math.floor((TL.x1 - TL.x0) / 90)));
+    for (let tt = 0; tt <= span + 1e-12; tt += step) {
+      const x = X(tt);
+      line(ctx, x, TL.axisY, x, TL.axisY + 4);
+      ctx.fillText(fmtTime(tt, 3), x, TL.axisY + 6);
+    }
+    timelineLayer = off;
+    timelineGeom = { w, TL };
+  }
+
+  function drawTimeline() {
+    const cv = $('timeline');
+    if (!timelineLayer || timelineGeom.w !== cv.clientWidth) buildTimeline();
+    if (!timelineLayer) return;
+    const { ctx, w, h } = fitCanvas(cv, TIMELINE_H);
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(timelineLayer, 0, 0, w, h);
+    const TL = timelineGeom.TL, x = TL.x0 + (t / S.geom.span) * (TL.x1 - TL.x0);
+    ctx.strokeStyle = colors.accent; ctx.lineWidth = 2;
+    line(ctx, x, 0, x, TL.axisY);
+  }
+
+  function scrub(e) {
+    if (!S || !timelineGeom) return;
+    const r = $('timeline').getBoundingClientRect(), TL = timelineGeom.TL;
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left - TL.x0) / (TL.x1 - TL.x0)));
+    t = f * S.geom.span;
+    particles = [];
+    setPlaying(false);
+  }
+  $('timeline').addEventListener('pointerdown', e => { $('timeline').setPointerCapture(e.pointerId); scrub(e); });
+  $('timeline').addEventListener('pointermove', e => { if (e.buttons) scrub(e); });
+
+  // ---------- loop ----------
+
+  function frame(ts) {
+    const dtWall = lastFrame ? Math.min(0.05, (ts - lastFrame) / 1000) : 0;
+    lastFrame = ts;
+    if (S && (playing || dirty)) {
+      if (playing) {
+        t += dtWall * S.geom.span / PLAY_SECONDS;
+        if (t >= S.geom.span) { t = S.geom.span; setPlaying(false); }
+      }
+      drawScene(playing ? dtWall : 0);
+      drawTimeline();
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  new ResizeObserver(() => { timelineLayer = null; dirty = true; }).observe($('scene'));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    colors = readColors(); timelineLayer = null; dirty = true;
+  });
+
+  colors = readColors();
+  applyPlatform('strat');
+  applyTarget('airliner');
+  updateOutputs();
+  run(true);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
